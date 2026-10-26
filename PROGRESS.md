@@ -80,8 +80,8 @@ Keep generated artifacts and .tools out of version control. There was no existin
 
 
 
-## GitHub preparation
+## GitHub repository
 
-- Initialized main locally and prepared a private repository named tommys-time-tracking-tables for goatonastik. Remote creation/push await account connection; no GitHub repository has been created yet.
+- Created private repository https://github.com/goatonastik/tommys-time-tracking-tables and uploaded all 44 tracked files through the GitHub integration. Local origin points to this repository. The initial local commit is preserved separately; GitHub has its own initial README commit and upload history. Local Git authentication is not configured; use the connected integration for subsequent uploads until Git is authenticated.
 - Added fresh-checkout SDK discovery, .NET 10 version selection, line-ending rules, private-data exclusions and a Windows build/test/package workflow.
-- All 35 checks and standalone publishing pass locally. GitHub-hosted workflow execution remains unverified.
+- All 35 checks and standalone publishing pass locally. The initial GitHub-hosted Windows workflow has started; its outcome is tracked under Actions.
