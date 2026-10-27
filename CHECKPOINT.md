@@ -1,14 +1,14 @@
-# Current checkpoint — notes2 implemented, final review/distribution pending
+# Current checkpoint — notes2 source complete, final distribution pending
 
-Updated 2026-10-27. Sol implemented notes2 and the confirmed daily rounding. Read the new top section of PROGRESS.md for completed changes/evidence. Application version 0.3.0. No normal user data was used in testing.
+Updated 2026-10-27. Sol implemented notes2 and the confirmed daily rounding. Application version 0.3.0. Read AGENTS.md and the top of PROGRESS.md. Normal user data was never used for tests.
 
-- 57 automated checks pass, zero warnings/errors, artifacts/notes2-build.log. Shown-window pop-out checks and background audio failure tests pass; local MP3 fixture decoded through NLayer.
-- First Claude read-only review completed, substantive findings fixed. Follow-up running in exec session 16160, output artifacts/claude-reviews/20261027-073746-552/review.md when complete. Review snapshots are static; later TimerCard changes use measured description fit and keep wide pop-outs able to narrow. Those changes need final review attention.
-- Intermediate 0.3.0 installer install/launch/uninstall/data-retention smoke passed, but package predates final source fixes. No test installation or app process remains.
-- Pending: finish Claude follow-up/final narrow review, rebuild/test final installer, commit, sync through GitHub connector preserving remote history, verify Windows CI and publish 0.3.0-preview with installer/checksum.
-- Remote main verified at 330e569c40255801d2a1695f33a8195dab732cbe. Local and remote histories differ; no force-push.
-- User explicitly excludes cross-version compatibility work. Fresh user pop-outs use current default size each opening; startup/recovery restores saved geometry. Export rounded value appears once per timer/day and blanks elsewhere; no daily subtotal rows/tabs.
-- Pointer automation still fails GetCursorPos access denied. Do not claim live click flows, audible output, mixed DPI or clean Windows 11 validation.
+- All 57 checks pass, zero warnings/errors: artifacts/notes2-build.log. Includes background audio failure cleanup, local managed MP3 decoding, shown-window pop-out min height/width, default size independence, fresh/restored geometry, slider no-recreation/empty rows, notice lifecycle, scrolled list-to-grid and exports.
+- Claude read-only reviews completed: 20261027-072607-530, 20261027-073746-552, and final 20261027-074902-694 under artifacts/claude-reviews. Final audit found no confirmed blocking/medium issues. Its small title-clipping recommendation and post-narrowing minimum-height assertion are implemented and verified. No reviewer is running.
+- Source committed locally as 29e7355, remote source commit ce3350bb68d6d2eae00a8a49a0816a977ea9ae54. Small final caption/test fix and documentation need their next commit. No force-push; local/remote histories differ.
+- Final/intermediate 0.3.0 installers passed isolated install/file hashes/launch/clean shutdown/uninstall/data retention. A final rebuild is needed for the one-line title clipping fix. No test installation/process remains.
+- Pending: rebuild and smoke final installer, commit/sync final fixes, verify Windows CI, publish v0.3.0-preview installer/checksum and record proof. Prior release remains available.
+- User excludes cross-version compatibility work. Fresh user pop-outs use current defaults; startup/recovery uses saved geometry. Rounded export hours appear once per timer/day, no subtotal rows/tabs.
+- Pointer automation fails GetCursorPos access denied. Do not claim click-through, audible output, mixed DPI or clean Windows 11 validation.
 
 ---
 # Current checkpoint — notes2 planning / ready for Sol

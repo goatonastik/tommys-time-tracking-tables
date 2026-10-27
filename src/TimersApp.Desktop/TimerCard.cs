@@ -214,7 +214,7 @@ internal sealed class TimerCard : Border
         if(style.ShowTitle&&!compact)identity.Inlines.Add(new Run(timer.Name){FontWeight=FontWeights.SemiBold});
         if(showDescription)identity.Inlines.Add(new Run((style.ShowTitle?" — ":"")+timer.Description));}
         identity.Foreground=text;identity.Visibility=Visible(identity.Inlines.Count>0);identity.ToolTip=timer.Name+"\n"+timer.Description;
-        identity.TextWrapping=horizontal?TextWrapping.NoWrap:TextWrapping.Wrap;identity.TextTrimming=horizontal?TextTrimming.None:TextTrimming.CharacterEllipsis;
+        identity.TextWrapping=horizontal?TextWrapping.NoWrap:TextWrapping.Wrap;identity.TextTrimming=horizontal&&!popout?TextTrimming.None:TextTrimming.CharacterEllipsis;identity.ClipToBounds=true;
         buttons.Visibility=Visible(style.ShowControls&&!compact);alertControls.Visibility=Visible(active&&style.ShowControls&&!compact);
         heading.Measure(new Size(horizontal?double.PositiveInfinity:Math.Max(45,(w-padding*2)/2-8),double.PositiveInfinity));
         buttons.Measure(new Size(horizontal?double.PositiveInfinity:Math.Max(45,(w-padding*2)/2),double.PositiveInfinity));
