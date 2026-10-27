@@ -1,14 +1,15 @@
-# Current checkpoint — notes2 source complete, final distribution pending
+# Current checkpoint — notes2 complete / 0.3.0 preview published
 
-Updated 2026-10-27. Sol implemented notes2 and the confirmed daily rounding. Application version 0.3.0. Read AGENTS.md and the top of PROGRESS.md. Normal user data was never used for tests.
+Updated 2026-10-27. All requested notes2 work is implemented, tested, reviewed and published. Await user testing/feedback; do not keep changing source solely for optional review suggestions.
 
-- All 57 checks pass, zero warnings/errors: artifacts/notes2-build.log. Includes background audio failure cleanup, local managed MP3 decoding, shown-window pop-out min height/width, default size independence, fresh/restored geometry, slider no-recreation/empty rows, notice lifecycle, scrolled list-to-grid and exports.
-- Claude read-only reviews completed: 20261027-072607-530, 20261027-073746-552, and final 20261027-074902-694 under artifacts/claude-reviews. Final audit found no confirmed blocking/medium issues. Its small title-clipping recommendation and post-narrowing minimum-height assertion are implemented and verified. No reviewer is running.
-- Source committed locally as 29e7355, remote source commit ce3350bb68d6d2eae00a8a49a0816a977ea9ae54. Small final caption/test fix and documentation need their next commit. No force-push; local/remote histories differ.
-- Final/intermediate 0.3.0 installers passed isolated install/file hashes/launch/clean shutdown/uninstall/data retention. A final rebuild is needed for the one-line title clipping fix. No test installation/process remains.
-- Pending: rebuild and smoke final installer, commit/sync final fixes, verify Windows CI, publish v0.3.0-preview installer/checksum and record proof. Prior release remains available.
-- User excludes cross-version compatibility work. Fresh user pop-outs use current defaults; startup/recovery uses saved geometry. Rounded export hours appear once per timer/day, no subtotal rows/tabs.
-- Pointer automation fails GetCursorPos access denied. Do not claim click-through, audible output, mixed DPI or clean Windows 11 validation.
+- Source: local implementation 29e7355, final title fix 1a975d1; remote final code 3f6aebcc55bbff0e208fa0832dbe9710133caa11. Local and remote histories differ; preserve both, no force-push.
+- Published release: https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.3.0-preview (ID 425601924, prerelease, not draft). Tag points to the final code commit. Installer and checksum uploaded; GitHub digest matches local.
+- Installer: artifacts/installer/Tommys-Time-Tracking-Tables-Setup-0.3.0.exe. SHA256 509F137511D10B768065A0568714309660AF4A4DA15824B9CCF6B6B08AA207EC. Proof: artifacts/installer/github-release-0.3.0.png. Portable folder/ZIP in artifacts/release.
+- 57 local checks pass, zero warnings/errors: artifacts/notes2-build.log. Final GitHub Windows workflow 40525668158 succeeded, including packaging. Earlier implementation workflow 40525157497 also succeeded.
+- Three read-only Claude reviews in artifacts/claude-reviews: 20261027-072607-530, 20261027-073746-552 and 20261027-074902-694. Final audit found no confirmed blocking/medium issues. Its small title-clipping suggestion and post-narrowing height assertion were applied and verified with render/shown-window checks.
+- Exact final installer passed isolated install, application/audio/license file hashes, bundled-runtime launch, clean shutdown, uninstall and saved-data retention. Logs: artifacts/installer-verified-0.3.0. No test installation or app process remains; normal user data was never touched.
+- Completed UI/layout/sizing, daily rounded export, bundled WAV/MP3 audio, Windows sound catalog and icon changes are summarized at the top of PROGRESS.md. The user excluded cross-version compatibility work.
+- Remaining manual QA: click-through (Windows blocks simulated pointer input), physical audible playback/device removal, mixed DPI/multi-monitor, clean Windows 11 and long-history UI performance. Actual machine is Windows 10 22H2. Shown WPF geometry tests passed; do not equate them with live mouse testing. Local MP3 decoding used an ignored public silence fixture and is not a CI dependency.
 
 ---
 # Current checkpoint — notes2 planning / ready for Sol
