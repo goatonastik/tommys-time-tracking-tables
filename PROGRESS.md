@@ -66,7 +66,7 @@ Brand: Tommy’s Time Tracking Tables, compact T⁴ mark. User suggested the ful
 - Preset editing/import/export, image crop/pan, audio playback/snooze, native pop-out sizing and minimal context menus.
 - Keyboard/screen-reader checks, high DPI and real multi-monitor configurations; real Windows sleep/resume.
 - Long-history performance and clean Windows testing. Fifty simultaneous timers pass deterministic checks.
-- Optional installer, code signing and shortcuts. Current delivery is a portable x64 preview ZIP.
+- Code signing remains pending. Delivery includes a portable x64 preview ZIP and a per-user installer with shortcuts (see installer verification below).
 - CSV remains exact detail only. XLSX is the complete grouped and rounded report format.
 ## Commands
 
@@ -105,3 +105,11 @@ Keep generated artifacts and .tools out of version control. There was no existin
 - 39 checks pass with zero warnings/errors. New checks cover save/backup outcome separation, preservation despite backup failure, locked-old-backup retention, millisecond formatting and pop-out title changes.
 - Claude reviewed the first batch (artifacts/claude-reviews/20261026-172902-742/review.md). Its secondary-backup and incomplete-file findings prompted the follow-up fixes above. Single-slot recovery behavior is documented; complete lifecycle UI testing and restore-off history retention remain follow-up work.
 - Final read-only follow-up: artifacts/claude-reviews/20261026-205932-592/review.md reported no new confirmed defects in these fixes. Remaining checks: interrupted-backup SQLite sidecars and corrupt optional slots in Load. Backup warnings intentionally persist until a successful backup; manual Save retries immediately.
+
+## Preview installer (2026-10-26)
+
+- Added an Inno Setup 6 installer, reproducible build script and SHA-256 output. Per-user install includes the runtime, Start menu shortcut, optional desktop shortcut and Windows uninstall registration. User data is separate and preserved on removal.
+- Built with Inno Setup 6.7.3. Verified installation into an isolated folder, installed-file hashes, a responsive app window with no external runtime, and successful uninstall with test data retained. The actual test PC reports Windows 10 22H2; Setup accepts that version and Windows 11. Clean Windows 11 and interactive wizard testing remain pending.
+- Claude's read-only reviews: artifacts/claude-reviews/20261026-232352-221/review.md and 20261026-232604-360/review.md. No blocking defects. Setup never automatically closes the app; its information page asks users to save and close it first. Enforced running-app upgrade blocking and obsolete-file cleanup remain future installer improvements; do not reinstall this preview while it is running.
+- Review snapshots now include installer sources. New files must still be staged before review, as documented in AGENTS.md. Application code is unchanged; its latest verification remains 39 passing checks.
+- Installer is unsigned. Output: artifacts/installer/Tommys-Time-Tracking-Tables-Setup-0.1.0.exe.

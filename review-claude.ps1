@@ -19,7 +19,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Cannot enumerate tracked project files.' }
     # Explicit source selection excludes .tools, artifacts, credentials and binary assets.
     $files = @($tracked | Where-Object {
-        $_ -in @('SPECIFICATION.md','README.md','PROGRESS.md','build.ps1','publish.ps1','sdk.ps1') -or
+        $_ -in @('SPECIFICATION.md','README.md','PROGRESS.md','build.ps1','publish.ps1','sdk.ps1','build-installer.ps1','review-claude.ps1') -or
+        ($_ -match '^installer/' -and $_ -match '\.(iss|md|txt)$') -or
         ($_ -match '^(src|tests)/' -and $_ -match '\.(cs|xaml|csproj)$') -or
         $_ -eq '.github/workflows/windows-build.yml'
     })

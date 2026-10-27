@@ -1,0 +1,12 @@
+Tommy's Time Tracking Tables - Preview
+
+Before installing or updating, save your timers and close any running copy of the app.
+
+Setup installs for your Windows account and includes the .NET runtime. A Start menu shortcut is included; a desktop shortcut is optional.
+
+Your timers, settings and backups are stored separately in:
+%LOCALAPPDATA%\TimersApp
+
+Uninstalling the app preserves that saved data.
+
+This preview installer is not code-signed. Windows may show an unknown-publisher warning.

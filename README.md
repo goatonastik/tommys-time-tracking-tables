@@ -4,6 +4,12 @@ A Windows 11 desktop stopwatch workspace built with C#, WPF, and .NET 10.
 
 ## Run on Windows 11 (64-bit Intel/AMD)
 
+Run **Tommys-Time-Tracking-Tables-Setup-0.1.0.exe** from `artifacts/installer` to install this preview for your Windows account. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
+
+The installer also accepts Windows 10 22H2, the current test machine. Windows 11 remains the intended target; clean Windows 11 testing is still pending.
+
+Alternatively, use the portable package:
+
 Extract **Tommys-Time-Tracking-Tables-win-x64.zip**, open its **TommysTimeTrackingTables** folder, and double-click **TimersApp.exe**. Keep the extracted files together. The .NET runtime is included; no SDK or Excel installation is needed. This portable build does not install shortcuts or register file associations.
 
 From the source workspace, **Start Tommy's Time Tracking Tables.cmd** opens the standalone build when present, with a development-build fallback. This is a preview pending live interaction and clean-Windows validation. See `SPECIFICATION.md` for the agreed requirements and `PROGRESS.md` in the source workspace for verification status.
@@ -39,6 +45,8 @@ Run `./build.ps1` in PowerShell to build and run the 39-check verification suite
 The suite covers independent timers, stopped/sleep gaps, duplicate starts, clock changes, reset/history preservation, name snapshots, rounding boundaries, crash recovery, date clipping, leap days, 23/25-hour daylight-saving days, active snapshots, atomic preferences, schema migration, damaged-database recovery, Excel totals/offsets, style inheritance/persistence, alerts/snooze, portable presets/backups, 50 active timers and offscreen WPF layout renders. The standalone app launches and exposes its controls through Windows accessibility. Accessible timer/readout names and dialog labels are checked offscreen; focus a timer and press Shift+F10 or the menu key to reach hidden controls. Live pointer interaction, audible playback, screen readers, mixed-DPI monitors and a clean Windows installation remain unverified.
 
 ## Structure
+
+To build the installer, install Inno Setup 6 and run `./build-installer.ps1`. It publishes the app, compiles Setup, and writes a SHA-256 checksum under `artifacts/installer`. Use `-SkipPublish` only with an already verified current publish folder. The build looks for Inno Setup in `.tools/inno`, standard installation folders, and PATH.
 
 - `src/TimersApp.Core`: serializable records, timing engine and calendar allocation; no WPF dependencies.
 - `src/TimersApp.Desktop`: WPF views, dialogs, SQLite storage and workbook writer.
