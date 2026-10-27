@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     private bool ready;
     private bool exiting;
     private bool saveProblem;
+    private string? backupWarning;
     private bool applyingSettings;
     private readonly AlertAudio audio;
 
@@ -75,7 +76,7 @@ public partial class MainWindow : Window
             if (Alerts.Evaluate(timer.Alert, timer.AlertState, Engine.Total(timer), DateTimeOffset.Now, timer.IsRunning)) audio.Play(timer);
         }
         foreach (var card in cardViews.ToArray()) card.Refresh();
-        if (!saveProblem) Status.Text = $"{Engine.Workspace.Timers.Count(t => !t.Archived)} timers  ·  {Engine.Workspace.Timers.Count(t => t.IsRunning)} running  ·  " + (Engine.Workspace.Settings.AutoSave ? "Autosave on" : "Autosave off — use Save now");
+        if (!saveProblem) Status.Text = $"{Engine.Workspace.Timers.Count(t => !t.Archived)} timers  ·  {Engine.Workspace.Timers.Count(t => t.IsRunning)} running  ·  " + (Engine.Workspace.Settings.AutoSave ? "Autosave on" : "Autosave off — use Save now") + (backupWarning is null ? "" : "  ·  " + backupWarning);
         if (Engine.Workspace.Settings.AutoSave && System.Diagnostics.Stopwatch.GetElapsedTime(lastSave) > TimeSpan.FromSeconds(5)) Save(false);
     }
     private void ApplySettings()
@@ -111,20 +112,28 @@ public partial class MainWindow : Window
     }
     private bool Save(bool announce, bool clean = false)
     {
-        try
+        bool backupDue = announce || System.Diagnostics.Stopwatch.GetElapsedTime(lastBackup) > TimeSpan.FromHours(1);
+        var result = PersistenceResult.Run(() =>
         {
-            Engine.Checkpoint(); Engine.Workspace.CleanShutdown = clean;
-            store.Save(Engine.Workspace); lastSave = System.Diagnostics.Stopwatch.GetTimestamp(); saveProblem = false;
-            if (System.Diagnostics.Stopwatch.GetElapsedTime(lastBackup) > TimeSpan.FromHours(1)) { store.Backup(); lastBackup = System.Diagnostics.Stopwatch.GetTimestamp(); }
-            if (announce) { store.Backup(); MessageBox.Show(this, "Timers and settings saved.", "Saved"); }
-            return true;
-        }
-        catch (Exception ex)
+            Engine.Checkpoint(); Engine.Workspace.CleanShutdown = clean; store.Save(Engine.Workspace);
+        }, backupDue ? store.Backup : null);
+        lastSave = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (!result.Saved)
         {
-            saveProblem = true; Status.Text = "Save failed — your current timers are still in memory. " + ex.Message;
+            saveProblem = true; Status.Text = "Save failed — your current timers are still in memory. " + result.SaveError;
             if (announce || clean) MessageBox.Show(this, Status.Text, "Could not save");
-            lastSave = System.Diagnostics.Stopwatch.GetTimestamp(); return false;
+            return false;
         }
+        saveProblem = false;
+        if (backupDue)
+        {
+            // A backup failure must not misreport a successful primary save, or retry every five seconds.
+            lastBackup = System.Diagnostics.Stopwatch.GetTimestamp();
+            backupWarning = result.BackupWarning is null ? null : "Timers saved; backup failed: " + result.BackupWarning;
+            if (backupWarning is not null) Status.Text = backupWarning;
+        }
+        if (announce) MessageBox.Show(this, backupWarning ?? "Timers and settings saved.", backupWarning is null ? "Saved" : "Saved with backup warning");
+        return true;
     }
     private void Preferences() => store.Save(new Workspace { Settings = new AppSettings { AutoSave = Engine.Workspace.Settings.AutoSave, RestoreOnLaunch = Engine.Workspace.Settings.RestoreOnLaunch, ExitChoice = Engine.Workspace.Settings.ExitChoice } }, "preferences");
     public void Toggle(TimerRecord timer) { if (timer.IsRunning) Engine.Stop(timer); else Engine.Start(timer); Changed(false); }
@@ -143,6 +152,7 @@ public partial class MainWindow : Window
         var dialog = new FormDialog(this, timer is null ? "Add timer" : "Edit timer");
         dialog.Label("Name");
         var name = new ComboBox { IsEditable = true, IsTextSearchEnabled = true, ItemsSource = Engine.Workspace.NameHistory.ToArray(), Text = timer?.Name ?? "", Padding = new Thickness(8), Foreground = Brushes.Black };
+        System.Windows.Automation.AutomationProperties.SetName(name, "Timer name");
         dialog.Fields.Children.Add(name);
         dialog.Label("Description (optional)"); var desc = dialog.Text(timer?.Description ?? "", true);
         dialog.Actions((timer is null ? "Add timer" : "Save changes", () => { if (timer is null) Engine.Add(name.Text, desc.Text); else Engine.Rename(timer, name.Text, desc.Text); dialog.DialogResult = true; }), ("Cancel", () => dialog.Close()));
@@ -152,9 +162,9 @@ public partial class MainWindow : Window
     {
         Engine.Checkpoint();
         var dialog = new FormDialog(this, $"Segment history — {timer.Name}", 850);
-        dialog.Label($"Current total: {Duration.Format(Engine.Total(timer))}   •   {timer.Segments.Count} recorded segments (including earlier resets)");
+        dialog.Label($"Current total: {Duration.FormatPrecise(Engine.Total(timer))}   •   {timer.Segments.Count} recorded segments (including earlier resets)");
         var grid = new DataGrid { IsReadOnly = true, AutoGenerateColumns = true, Height = 360, Foreground = Brushes.Black, Background = Brushes.White, CanUserAddRows = false,
-            ItemsSource = timer.Segments.OrderByDescending(x => x.Start).Select(x => new { Started = x.Start.ToString("yyyy-MM-dd HH:mm:ss.fff zzz"), Stopped = x.End?.ToString("yyyy-MM-dd HH:mm:ss.fff zzz") ?? "Running — snapshot", Duration = Core.Duration.Format(Engine.Elapsed(x)), Run = x.RunId == timer.RunId ? "Current" : "Archived total", Recovery = x.Recovered ? "Recovered" : "" }).ToList() };
+            ItemsSource = timer.Segments.OrderByDescending(x => x.Start).Select(x => new { Started = x.Start.ToString("yyyy-MM-dd HH:mm:ss.fff zzz"), Stopped = x.End?.ToString("yyyy-MM-dd HH:mm:ss.fff zzz") ?? "Running — snapshot", Duration = Core.Duration.FormatPrecise(Engine.Elapsed(x)), Run = x.RunId == timer.RunId ? "Current" : "Archived total", Recovery = x.Recovered ? "Recovered" : "" }).ToList() };
         dialog.Fields.Children.Add(grid); dialog.Label("This is a snapshot. Reopen history to refresh an active segment."); dialog.Actions(("Close", () => dialog.Close())); dialog.ShowDialog();
     }
     public bool IsPoppedOut(TimerRecord timer) => popouts.ContainsKey(timer.Id);
@@ -188,7 +198,7 @@ public partial class MainWindow : Window
         try
         {
             var dialog = new FormDialog(this, "Load saved workspace");
-            dialog.Label("Choose a saved workspace. Loading replaces the current workspace and its unsaved changes.");
+            dialog.Label("Loading replaces the current workspace. A recovery copy is saved first in the 'before restore' slot; that slot keeps only the most recently displaced workspace.");
             var choices = new List<LoadChoice> { new("current", "Latest saved workspace") };
             if (store.Load("previous-workspace") is not null) choices.Add(new("previous-workspace", "Previous workspace kept when launch restoration was off"));
             if (store.Load("before-restore") is not null) choices.Add(new("before-restore", "Workspace preserved before the last restore"));
@@ -196,6 +206,7 @@ public partial class MainWindow : Window
             dialog.Actions(("Load workspace", () => dialog.DialogResult = true), ("Cancel", () => dialog.Close()));
             if (dialog.ShowDialog() != true) return;
             var saved = store.Load(((LoadChoice)selected.SelectedItem).Slot); if (saved is null) return;
+            PreserveBeforeRestore();
             ReplaceWorkspace(saved);
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Load failed"); }

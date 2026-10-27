@@ -26,7 +26,7 @@ From the source workspace, **Start Tommy's Time Tracking Tables.cmd** opens the 
 
 ## Data
 
-Default location: `%LocalAppData%/TimersApp/workspace.db`. Save/stop/start operations persist immediately when autosave is enabled. Running snapshots are saved every five seconds, so a crash can lose up to the latest checkpoint interval if interruption time is excluded. Timestamped backups are made hourly during autosave, on manual save and on clean exit; the latest 20 are retained. **Backups…** can restore snapshots or export/import a portable `.t4backup` containing the workspace and referenced images/sounds.
+Default location: `%LocalAppData%/TimersApp/workspace.db`. Save/stop/start operations persist immediately when autosave is enabled. Running snapshots are saved every five seconds, so a crash can lose up to the latest checkpoint interval if interruption time is excluded. Timestamped backups are made hourly during autosave, on manual save and on clean exit; the latest 20 are normally retained (locked older files are retried on the next backup). **Backups…** can restore snapshots or export/import a portable `.t4backup` containing the workspace and referenced images/sounds.
 
 On exit, Save keeps current changes; Discard restores the workspace from the start of this session. Remember this decision is initially unchecked. Reset or archive preserves recorded history. Reports may include archived timers and can filter selected timers or dates. XLSX includes calendar groups and summaries; CSV contains exact session detail only.
 
@@ -34,7 +34,7 @@ Development tests use `TIMERSAPP_DATA_DIR` to isolate their files under `artifac
 
 ## Build and verification
 
-Run `./build.ps1` in PowerShell to build and run the 35-check verification suite. Run `./publish.ps1` to produce the self-contained Windows x64 folder and ZIP under `artifacts/release`. Both prefer the project-local .NET 10 SDK and otherwise use an installed .NET 10 SDK. A fresh checkout needs Windows and the .NET 10 SDK; generated files stay under ignored .tools and artifacts folders. Network access is needed when restoring missing packages.
+Run `./build.ps1` in PowerShell to build and run the 39-check verification suite. Run `./publish.ps1` to produce the self-contained Windows x64 folder and ZIP under `artifacts/release`. Both prefer the project-local .NET 10 SDK and otherwise use an installed .NET 10 SDK. A fresh checkout needs Windows and the .NET 10 SDK; generated files stay under ignored .tools and artifacts folders. Network access is needed when restoring missing packages.
 
 The suite covers independent timers, stopped/sleep gaps, duplicate starts, clock changes, reset/history preservation, name snapshots, rounding boundaries, crash recovery, date clipping, leap days, 23/25-hour daylight-saving days, active snapshots, atomic preferences, schema migration, damaged-database recovery, Excel totals/offsets, style inheritance/persistence, alerts/snooze, portable presets/backups, 50 active timers and offscreen WPF layout renders. The standalone app launches and exposes its controls through Windows accessibility. Accessible timer/readout names and dialog labels are checked offscreen; focus a timer and press Shift+F10 or the menu key to reach hidden controls. Live pointer interaction, audible playback, screen readers, mixed-DPI monitors and a clean Windows installation remain unverified.
 
@@ -49,4 +49,4 @@ The presentation layer uses event-driven views and isolated draft editors. Timer
 
 ## Automated Windows builds
 
-The GitHub Actions workflow builds and tests on Windows, then uploads the portable ZIP and rendered previews as workflow artifacts. It runs on pushes to main, pull requests and manual requests. Workflow execution on GitHub is not yet verified.
+The GitHub Actions workflow builds and tests on Windows, then uploads the portable ZIP and rendered previews as workflow artifacts. It runs on pushes to main, pull requests and manual requests. The initial GitHub Windows build passed, including tests, packaging and artifact upload.

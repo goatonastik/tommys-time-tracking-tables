@@ -120,10 +120,22 @@ public sealed class WorkspaceStore
     {
         using var source = Open();
         var file = Path.Combine(Folder, $"backup-{DateTime.Now:yyyyMMdd-HHmmss-ffff}.db");
-        using var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = file }.ToString());
-        target.Open();
-        source.BackupDatabase(target);
-        foreach (var old in Directory.GetFiles(Folder, "backup-*.db").OrderDescending().Skip(20)) File.Delete(old);
+        string temporary = file + ".partial";
+        try
+        {
+            using (var target = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = temporary, Pooling = false }.ToString()))
+            {
+                target.Open();
+                source.BackupDatabase(target);
+            }
+            File.Move(temporary, file);
+        }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        foreach (var old in Directory.GetFiles(Folder, "backup-*.db").OrderDescending().Skip(20))
+        {
+            // A locked old snapshot must not invalidate the newly completed backup.
+            try { File.Delete(old); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
     }
     public static Workspace Copy(Workspace value) => JsonSerializer.Deserialize<Workspace>(JsonSerializer.Serialize(value, json), json)!;
 }

@@ -9,6 +9,48 @@ internal static class ReliabilityChecks
     public static void Run(Action<string, Action> test, string artifacts)
     {
         static void Equal<T>(T expected, T actual) { if (!EqualityComparer<T>.Default.Equals(expected, actual)) throw new Exception($"Expected {expected}, got {actual}"); }
+        test("Primary save failure prevents backup; backup failure retains durable recovery copy", () =>
+        {
+            bool backupCalled = false;
+            var failed = PersistenceResult.Run(() => throw new IOException("Primary failed"), () => backupCalled = true);
+            Equal(false, failed.Saved); Equal(false, backupCalled); Equal("Primary failed", failed.SaveError);
+            var store = new WorkspaceStore(Path.Combine(artifacts, "save-outcome-" + Guid.NewGuid().ToString("N")));
+            var workspace = new Workspace(); workspace.Timers.Add(new TimerRecord { Name = "Preserved despite backup failure" });
+            var preserved = PersistenceResult.Run(() => store.Save(workspace, "before-restore"), () => throw new IOException("Backup failed"));
+            Equal(true, preserved.Saved); Equal("Backup failed", preserved.BackupWarning);
+            Equal("Preserved despite backup failure", store.Load("before-restore")!.Timers[0].Name);
+        });
+        test("Locked old backup does not prevent a new complete snapshot", () =>
+        {
+            var store = new WorkspaceStore(Path.Combine(artifacts, "locked-backup-" + Guid.NewGuid().ToString("N")));
+            store.Save(new Workspace());
+            for (int i = 0; i < 20; i++) store.Backup();
+            var oldest = store.Backups().Last();
+            using (var locked = new FileStream(oldest, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                store.Backup(); Equal(21, store.Backups().Count); _ = WorkspaceStore.ReadDatabase(store.Backups()[0]);
+                Equal(0, Directory.GetFiles(store.Folder, "*.partial").Length);
+            }
+            store.Backup(); Equal(20, store.Backups().Count);
+        });
+        test("History durations retain milliseconds and hours beyond a day", () =>
+        {
+            Equal("00:00:00.900", Duration.FormatPrecise(TimeSpan.FromMilliseconds(900)));
+            Equal("25:02:03.004", Duration.FormatPrecise(TimeSpan.FromHours(25) + TimeSpan.FromMinutes(2) + TimeSpan.FromSeconds(3) + TimeSpan.FromMilliseconds(4)));
+        });
+        test("Backup rotation retains twenty readable snapshots without locked target handles", () =>
+        {
+            var store = new WorkspaceStore(Path.Combine(artifacts, "rotation-" + Guid.NewGuid().ToString("N")));
+            var workspace = new Workspace(); workspace.Timers.Add(new TimerRecord { Name = "Retained" }); store.Save(workspace);
+            for (int i = 0; i < 23; i++) store.Backup();
+            Equal(20, store.Backups().Count);
+            foreach (var file in store.Backups())
+            {
+                Equal("Retained", WorkspaceStore.ReadDatabase(file).Timers[0].Name);
+                using var handle = new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                Equal(true, handle.Length > 0);
+            }
+        });
         test("Loading checkpoint cannot erase recovery gap", () =>
         {
             var time = new ManualClock(); var w = new Workspace(); var engine = new TimerEngine(w, time); var t = engine.Add("Gap"); engine.Start(t); time.Advance(20); engine.Checkpoint();

@@ -16,7 +16,7 @@ public partial class MainWindow
     private void Backups_Click(object sender, RoutedEventArgs e)
     {
         var d = new FormDialog(this, "Back up and restore", 650);
-        d.Label("Portable backups contain timer history, settings, presets, images and sounds. Restoring replaces the current workspace; a recovery copy is saved first.");
+        d.Label("Portable backups contain timer history, settings, presets, images and sounds. Restoring replaces the current workspace; a recovery copy is saved first. Load saved can retrieve the most recently displaced workspace; the next restore replaces that recovery slot.");
         var list = new ListBox { Height = 210, Foreground = Brushes.Black, ItemsSource = store.Backups().Select(p => new BackupChoice(p, File.GetLastWriteTime(p).ToString("yyyy-MM-dd HH:mm:ss"))).ToArray() }; d.Fields.Children.Add(list);
         d.Actions(("Export portable backup…", () =>
         {
@@ -34,7 +34,11 @@ public partial class MainWindow
     }
     private void PreserveBeforeRestore()
     {
-        Engine.Checkpoint(); store.Save(Engine.Workspace, "before-restore"); store.Backup();
+        var result = PersistenceResult.Run(() => { Engine.Checkpoint(); store.Save(Engine.Workspace, "before-restore"); }, store.Backup);
+        if (!result.Saved) throw new IOException("Could not preserve the current workspace: " + result.SaveError);
+        lastBackup = System.Diagnostics.Stopwatch.GetTimestamp();
+        backupWarning = result.BackupWarning is null ? null : "Recovery copy saved; secondary backup failed: " + result.BackupWarning;
+        if (backupWarning is not null) Status.Text = backupWarning;
     }
     private sealed record BackupChoice(string Path, string Label) { public override string ToString() => Label; }
     private void ReplaceWorkspace(Workspace workspace)

@@ -30,6 +30,7 @@ internal sealed class TimerCard : Border
     private readonly ImageBackdrop backdrop = new() { IsHitTestVisible = false };
     private readonly Thumb resize = new() { Width = 15, Height = 15, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Cursor = Cursors.SizeNWSE, Opacity = .4, ToolTip = "Drag to resize this timer" };
     private TimerStyle? previewStyle;
+    private readonly MenuItem returnToWorkspace = new() { Header = "Return to workspace" };
     public TimerCard(MainWindow host, TimerRecord timer, bool popout = false, bool preview = false)
     {
         this.host = host; this.timer = timer; this.popout = popout; this.preview = preview;
@@ -80,6 +81,7 @@ internal sealed class TimerCard : Border
         Item(menu, "Snooze alert", () => host.SnoozeAlert(timer));
         Item(menu, "Reset total (keep history)", () => host.Reset(timer));
         Item(menu, popout ? "Return to workspace" : "Pop out / focus window", () => { if (popout) host.Return(timer); else host.PopOut(timer); });
+        if (!popout) { returnToWorkspace.Click += (_, _) => host.Return(timer); menu.Items.Add(returnToWorkspace); }
         if (popout) Item(menu, "Toggle always on top", () => { var w = Window.GetWindow(this); w.Topmost = !w.Topmost; timer.Popout.Topmost = w.Topmost; host.AppearanceChanged(); });
         Item(menu, "Remove from workspace (keep history)", () => host.Remove(timer));
         if (!popout && !preview)
@@ -120,6 +122,8 @@ internal sealed class TimerCard : Border
         if (ActualWidth > 0 && ActualHeight > 0) Clip = new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight), style.CornerRadius, style.CornerRadius);
         backdrop.Update(style.Background);
         title.Text = timer.Name; title.ToolTip = timer.Name; title.Foreground = text;
+        returnToWorkspace.IsEnabled = !preview && host.IsPoppedOut(timer);
+        if (popout && !preview && Window.GetWindow(this) is { } window) window.Title = timer.Name + " — T⁴";
         description.Text = timer.Description; description.ToolTip = timer.Description; description.Foreground = text; description.Opacity = .75;
         var total = preview ? TimeSpan.FromSeconds(4120.375) : host.Engine.Total(timer); var settings = host.Engine.Workspace.Settings;
         bool active = !preview && timer.Alert.Enabled && timer.AlertState.Active;

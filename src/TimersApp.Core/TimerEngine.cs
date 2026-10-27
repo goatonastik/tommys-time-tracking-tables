@@ -137,4 +137,5 @@ public static class Duration
         return TimeSpan.FromTicks(checked((value.Ticks / step + (value.Ticks % step >= step / 2 ? 1 : 0)) * step));
     }
     public static string Format(TimeSpan value) => $"{(long)value.TotalHours:00}:{value.Minutes:00}:{value.Seconds:00}";
+    public static string FormatPrecise(TimeSpan value) => $"{Format(value)}.{value.Milliseconds:000}";
 }
