@@ -105,13 +105,13 @@ internal static class ReliabilityChecks
             b.Segments.Add(new Segment { Start = a.Segments[0].Start, End = a.Segments[0].End, ElapsedTicks = 123 });
             var rows = Reports.Build(w, new(null, null, TimerIds: [a.Id]), TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time")); Equal(1, rows.Count); Equal(TimeSpan.FromHours(25).Ticks, rows[0].Ticks); Equal(a.Id, rows[0].TimerId);
         });
-        test("Excel preserves recorded offset, active blank stop, and subtotals", () =>
+        test("Excel preserves recorded offset and active blank stop without subtotals", () =>
         {
             var w = new Workspace(); var t = new TimerRecord { Name = "=2+2" }; w.Timers.Add(t);
             var start = new DateTimeOffset(2025, 6, 5, 12, 30, 0, TimeSpan.FromHours(9)); t.Segments.Add(new Segment { Name = t.Name, Start = start, MeasuredThrough = start.AddMinutes(7), ElapsedTicks = TimeSpan.FromMinutes(7).Ticks });
-            string path = Path.Combine(artifacts, "offsets.xlsx"); ExcelExport.Write(path, w, new(null, null, Totals: TotalDisplay.Exact)); using var book = new XLWorkbook(path); var detail = book.Worksheet("Session detail");
-            Equal(start.DateTime, detail.Cell(2, 5).GetDateTime()); Equal("+09:00", detail.Cell(2, 13).GetString()); Equal(true, detail.Cell(2, 6).IsEmpty()); Equal(false, detail.Cell(2, 3).HasFormula);
-            Equal(true, detail.RowsUsed().Any(row => row.Cell(3).GetString() == "Day total")); Equal(true, detail.RowsUsed().Any(row => row.Cell(3).GetString() == "Month total")); Equal(true, book.Worksheet("Monthly totals").Column(4).IsHidden);
+            string path = Path.Combine(artifacts, "offsets.xlsx"); ExcelExport.Write(path, w, new(null, null)); using var book = new XLWorkbook(path); var detail = book.Worksheet("Recorded time");
+            Equal(start.DateTime, detail.Cell(2, 6).GetDateTime()); Equal(true, detail.Cell(2, 6).GetComment().Text.Contains("+09:00")); Equal(true, detail.Cell(2, 7).IsEmpty()); Equal(false, detail.Cell(2, 3).HasFormula);
+            Equal(false, detail.RowsUsed().Any(row => row.Cell(3).GetString() == "Day total")); Equal(1, book.Worksheets.Count);
         });
         test("Multi-year export preserves every tick and clips consistently", () =>
         {
@@ -131,7 +131,7 @@ internal static class ReliabilityChecks
             var start = new DateTimeOffset(9999, 12, 30, 12, 0, 0, TimeSpan.Zero);
             t.Segments.Add(new Segment { Start = start, End = start.AddHours(1), MeasuredThrough = start.AddHours(1), ElapsedTicks = TimeSpan.TicksPerHour });
             string path = Path.Combine(artifacts, "last-month.xlsx"); ExcelExport.Write(path, w, new(null, DateOnly.MaxValue));
-            using var book = new XLWorkbook(path); Equal("9999-12", book.Worksheet("Monthly totals").Cell(2, 1).GetString());
+            using var book = new XLWorkbook(path); Equal(start.Date, book.Worksheet("Recorded time").Cell(2, 5).GetDateTime());
         });
         test("CSV replacement failure preserves the existing report and cleans temporary files", () =>
         {

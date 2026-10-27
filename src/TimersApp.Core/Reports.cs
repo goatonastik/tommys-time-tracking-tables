@@ -2,10 +2,8 @@ using System.Numerics;
 
 namespace TimersApp.Core;
 
-public enum RoundingBasis { Daily, Monthly }
-public sealed record ReportOptions(DateOnly? From, DateOnly? Through, int RoundMinutes = 15,
-    RoundingBasis Basis = RoundingBasis.Daily, bool IncludeRunning = true, Guid? TimerId = null,
-    IReadOnlyCollection<Guid>? TimerIds = null, TotalDisplay Totals = TotalDisplay.Both);
+public sealed record ReportOptions(DateOnly? From, DateOnly? Through, bool IncludeRunning = true, Guid? TimerId = null,
+    IReadOnlyCollection<Guid>? TimerIds = null);
 public sealed record ReportRow(Guid TimerId, Guid SegmentId, string Name, string Description, DateOnly Day,
     DateTimeOffset ActualStart, DateTimeOffset? ActualStop, DateTimeOffset MeasuredThrough,
     DateTimeOffset PortionStart, DateTimeOffset PortionStop, long Ticks, bool Recovered, bool ClockAdjusted);

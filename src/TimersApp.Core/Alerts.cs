@@ -10,6 +10,8 @@ public sealed class AlertSettings
     public string Color { get; set; } = "#FFBD69";
     public bool PlaySound { get; set; }
     public string? SoundPath { get; set; }
+    public string? SystemSound { get; set; }
+    public string? SoundName { get; set; }
     public double Volume { get; set; } = .6;
     public bool RepeatSound { get; set; }
     public int SnoozeMinutes { get; set; } = 5;

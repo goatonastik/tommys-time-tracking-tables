@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Automation;
+using System.Windows.Documents;
 using System.Windows.Automation.Peers;
 using TimersApp.Core;
 using Duration = TimersApp.Core.Duration;
@@ -15,8 +16,6 @@ internal sealed class TimerCard : Border
     private readonly MainWindow host;
     private readonly bool popout;
     private readonly bool preview;
-    private readonly TextBlock title = new() { FontSize = 18, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
-    private readonly TextBlock description = new() { TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 5, 0, 0) };
     private readonly TextBlock state = new() { FontSize = 11, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 10) };
     private readonly TimeReadout digits = new();
     private readonly Viewbox readout;
@@ -24,7 +23,6 @@ internal sealed class TimerCard : Border
     private readonly Button start = new();
     private readonly WrapPanel buttons = new();
     private readonly StackPanel heading = new();
-    private readonly StackPanel footer = new();
     private readonly WrapPanel alertControls = new() { Margin = new Thickness(0, 4, 0, 4) };
     private readonly Grid content = new();
     private readonly ImageBackdrop backdrop = new() { IsHitTestVisible = false };
@@ -33,8 +31,22 @@ internal sealed class TimerCard : Border
     private readonly MenuItem returnToWorkspace = new() { Header = "Return to workspace" };
     private Rect lastClip;
     private double lastRadius=-1;
-    private bool? wideLayout;
-    private readonly ScaleTransform popoutTransform=new();
+
+    private readonly TextBlock identity = new() { TextWrapping=TextWrapping.Wrap };
+    private readonly Grid band = new();
+    private bool? horizontalLayout;
+    internal bool IsList => !popout && !preview && host.Engine.Workspace.Settings.ListLayout;
+    internal double DigitHeight => readout.ActualHeight;
+    internal bool HorizontalPresentation => horizontalLayout==true;
+    internal bool ControlsVisible => start.Visibility==Visibility.Visible;
+    internal bool DescriptionVisible {get;private set;}
+    private string identityKey="";
+    private string titleMeasureKey="";
+    private double cachedTitleWidth;
+    private double cachedDescriptionWidth;
+    private readonly TextBlock tooltipText=new(){TextWrapping=TextWrapping.Wrap,MaxWidth=420};
+    private bool minimumClamped;
+
     public TimerCard(MainWindow host, TimerRecord timer, bool popout = false, bool preview = false)
     {
         this.host = host; this.timer = timer; this.popout = popout; this.preview = preview;
@@ -43,19 +55,16 @@ internal sealed class TimerCard : Border
         AutomationProperties.SetHelpText(this, "Press Shift+F10 or the menu key for timer controls, styles and history.");
         if (preview) { IsHitTestVisible = false; Focusable = false; KeyboardNavigation.SetTabNavigation(this, KeyboardNavigationMode.None); }
         ClipToBounds = true;
+        ToolTip=new ToolTip{Content=tooltipText};ToolTipOpening+=(_,_)=>{var total=host.Engine.Total(timer);tooltipText.Text=(minimumClamped?"Minimum readable size reached.\n":"")+timer.Name+(string.IsNullOrWhiteSpace(timer.Description)?"":"\n"+timer.Description)+"\nExact total: "+Duration.FormatPrecise(total)+"\nRight-click for controls, styles and history.";};
         var layers = new Grid(); Child = layers; layers.Children.Add(backdrop); layers.Children.Add(content);
-        content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        heading.Children.Add(state); heading.Children.Add(title); heading.Children.Add(description); content.Children.Add(heading);
+        heading.Children.Add(state); heading.Children.Add(identity);
         var view = new Viewbox { Child = digits, Stretch = Stretch.Uniform, Margin = new Thickness(0, 5, 0, 5), HorizontalAlignment = HorizontalAlignment.Stretch };
         readout = view;
-        Grid.SetRow(view, 1); content.Children.Add(view);
-        footer.Children.Add(rounded); footer.Children.Add(buttons); Grid.SetRow(footer, 2); content.Children.Add(footer);
         Add(alertControls, "Dismiss", "Restore normal appearance and stop sound", () => host.DismissAlert(timer));
         Add(alertControls, "Snooze", "Silence temporarily using this timer’s snooze interval", () => host.SnoozeAlert(timer));
-        footer.Children.Add(alertControls);
-        start.Click += (_, _) => host.Toggle(timer); buttons.Children.Add(start);
+        start.Click += (_, _) => host.Toggle(timer);
+        band.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});band.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
+        band.Children.Add(start);Grid.SetColumn(readout,1);Grid.SetRow(readout,0);band.Children.Add(readout);
         start.Padding=new Thickness(12,4,12,4);
         Add(buttons, "◷", "Segment history", () => host.History(timer));
         Add(buttons, popout ? "↙" : "↗", popout ? "Return to workspace" : "Pop out / focus window", () => { if (popout) host.Return(timer); else host.PopOut(timer); });
@@ -93,7 +102,7 @@ internal sealed class TimerCard : Border
         {
             resize.Template = (ControlTemplate)FindResource("TimerResizeTemplate");
             layers.Children.Add(resize);
-            resize.DragDelta += (_, e) => { Width = Math.Clamp(Width + e.HorizontalChange, 170, 1500); Height = Math.Clamp(Height + e.VerticalChange, 100, 1200); timer.Width = Width; timer.Height = Height; host.Relayout(); };
+            resize.DragDelta += (_, e) => { double scale=host.Engine.Workspace.Settings.TimerScale; timer.Width=Math.Clamp((Width+e.HorizontalChange)/scale,170,1500);timer.Height=Math.Clamp((Height+e.VerticalChange)/scale,100,1200);ConfigureWorkspace(host.WorkspaceWidth);host.Relayout(); };
             resize.DragCompleted += (_, _) => host.AppearanceChanged(false);
         }
         SizeChanged += (_, _) => Refresh();
@@ -119,53 +128,104 @@ internal sealed class TimerCard : Border
     private static void Add(Panel panel, string text, string tip, Action action) { var b = new Button { Content = text, ToolTip = tip, Padding = new Thickness(9, 4, 9, 4) }; AutomationProperties.SetName(b, tip); b.Click += (_, _) => action(); panel.Children.Add(b); }
     private static void Item(ContextMenu menu, string text, Action action) { var item = new MenuItem { Header = text }; item.Click += (_, _) => action(); menu.Items.Add(item); }
     private static Visibility Visible(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
+    internal void ConfigureWorkspace(double viewport)
+    {
+        if(popout||preview)return;
+        Refresh();var requested=TimerSizing.Requested(host.Engine.Workspace.Settings,timer);
+        Width=IsList?Math.Max(MinWidth,viewport):Math.Max(MinWidth,requested.Width);
+        Height=Math.Max(MinHeight,requested.Height);
+    }
+    private void Compose(bool horizontal)
+    {
+        if(horizontalLayout==horizontal)return;horizontalLayout=horizontal;
+        content.Children.Clear();content.ColumnDefinitions.Clear();content.RowDefinitions.Clear();
+        if(horizontal)
+        {
+            foreach(var width in new[]{GridLength.Auto,GridLength.Auto,new GridLength(1,GridUnitType.Star),GridLength.Auto})content.ColumnDefinitions.Add(new ColumnDefinition{Width=width});
+            content.RowDefinitions.Add(new RowDefinition{Height=new GridLength(1,GridUnitType.Star)});
+            AddAt(band,0,0);AddAt(rounded,0,1);AddAt(heading,0,2);AddAt(buttons,0,3);
+            content.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});AddAt(alertControls,1,0,4);
+            rounded.Margin=new Thickness(12,0,16,0);heading.Margin=new Thickness(0,0,16,0);heading.HorizontalAlignment=HorizontalAlignment.Stretch;
+        }
+        else
+        {
+            content.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});content.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
+            content.RowDefinitions.Add(new RowDefinition{Height=new GridLength(1,GridUnitType.Star)});
+            for(int i=0;i<3;i++)content.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
+            AddAt(band,0,0,2);AddAt(rounded,1,0,2);AddAt(buttons,2,0);AddAt(heading,2,1);AddAt(alertControls,3,0,2);
+            rounded.Margin=new Thickness(0,4,0,8);heading.Margin=new Thickness(8,0,0,0);heading.HorizontalAlignment=HorizontalAlignment.Right;
+        }
+        identity.TextAlignment=horizontal?TextAlignment.Left:TextAlignment.Right;heading.VerticalAlignment=horizontal?VerticalAlignment.Center:VerticalAlignment.Bottom;buttons.VerticalAlignment=VerticalAlignment.Center;
+        void AddAt(UIElement child,int row,int col,int span=1){Grid.SetRow(child,row);Grid.SetColumn(child,col);Grid.SetColumnSpan(child,span);Grid.SetRowSpan(child,1);content.Children.Add(child);}
+    }
     public void Refresh()
     {
-        var style = previewStyle ?? Appearance.Resolve(host.Engine.Workspace, timer, popout);
-        var text = Visuals.Brush(style.TextColor); var accent = Visuals.Brush(style.AccentColor);
-        double scale=popout&&!preview?(host.Engine.Workspace.Settings.LinkPopoutScale?host.Engine.Workspace.Settings.TimerScale:host.Engine.Workspace.Settings.PopoutScale):1;
-        if(popout){if(content.LayoutTransform!=popoutTransform)content.LayoutTransform=popoutTransform;popoutTransform.ScaleX=popoutTransform.ScaleY=scale;}
-        double availableHeight=(ActualHeight>0?ActualHeight:double.IsFinite(Height)?Height:250)/scale;
-        double availableWidth=(ActualWidth>0?ActualWidth:double.IsFinite(Width)?Width:330)/scale;
-        double padding=popout&&availableHeight<170?Math.Min(style.Padding,Math.Max(2,availableHeight*.045)):style.Padding;
-        content.Margin = new Thickness(padding); CornerRadius = new CornerRadius(style.CornerRadius);
+        var style=previewStyle??Appearance.Resolve(host.Engine.Workspace,timer,popout);
+        var settings=host.Engine.Workspace.Settings;
+        var text=Visuals.Brush(style.TextColor);var accent=Visuals.Brush(style.AccentColor);
+        double h=ActualHeight>0?ActualHeight:double.IsFinite(Height)?Height:250;
+        double w=ActualWidth>0?ActualWidth:double.IsFinite(Width)?Width:330;
+        var ownerWindow=popout&&!preview?Window.GetWindow(this):null;
+        var chrome=ownerWindow is null?new Size():WindowPlacementService.Chrome(ownerWindow);
+        if(ownerWindow is not null&&ownerWindow.ActualWidth>0){w=Math.Max(1,ownerWindow.ActualWidth-chrome.Width);h=Math.Max(1,ownerWindow.ActualHeight-chrome.Height);}
+        bool wide=popout&&w>=620&&h<230;
+        bool horizontal=IsList||wide;
+        Compose(horizontal);
+        double padding=popout?Math.Min(style.Padding,Math.Max(4,h*.045)):style.Padding;
+        content.Margin=new Thickness(padding);CornerRadius=new CornerRadius(style.CornerRadius);
         var bounds=new Rect(0,0,Math.Max(0,ActualWidth),Math.Max(0,ActualHeight));
         if(bounds!=lastClip||lastRadius!=style.CornerRadius){Clip=new RectangleGeometry(bounds,style.CornerRadius,style.CornerRadius);lastClip=bounds;lastRadius=style.CornerRadius;}
         backdrop.Update(style.Background);
-        title.Text = timer.Name; title.ToolTip = timer.Name; title.Foreground = text;
-        returnToWorkspace.IsEnabled = !preview && host.IsPoppedOut(timer);
-        if (popout && !preview && Window.GetWindow(this) is { } window) window.Title = timer.Name + " — T⁴";
-        description.Text = timer.Description; description.ToolTip = timer.Description; description.Foreground = text; description.Opacity = .75;
-        var total = preview ? TimeSpan.FromSeconds(4120.375) : host.Engine.Total(timer); var settings = host.Engine.Workspace.Settings;
-        bool active = !preview && timer.Alert.Enabled && timer.AlertState.Active;
-        var color = active && timer.Alert.ChangeColor ? Visuals.Brush(timer.Alert.Color) : text;
-        digits.Update(Appearance.Format(settings.TotalDisplay == TotalDisplay.Rounded ? Duration.Round(total, settings.RoundMinutes) : total, style), style, color);
-        readout.StretchDirection = style.FitDigitsToWindow ? StretchDirection.Both : StretchDirection.DownOnly;
-        digits.Opacity = active && timer.Alert.Flash ? (DateTime.UtcNow.Millisecond < 500 ? 1 : .15) : 1;
-        rounded.Text = settings.TotalDisplay switch { TotalDisplay.Both => $"≈ {Appearance.Format(Duration.Round(total, settings.RoundMinutes), style)} · nearest {settings.RoundMinutes} min", TotalDisplay.Rounded => $"Rounded · nearest {settings.RoundMinutes} min", _ => "Exact running total" };
-        rounded.Foreground = text; rounded.Opacity = .75;
-        state.Text = (timer.IsRunning ? "● RUNNING" : "● STOPPED") + (!popout && host.IsPoppedOut(timer) ? "    ↗ POPPED OUT" : "") + (active ? "    ◉ ALERT" : "");
-        state.Foreground = timer.IsRunning ? accent : text;
-        start.Background = accent; start.Foreground = Brushes.Black;
-        start.Content = timer.IsRunning ? "Stop" : timer.Segments.Any(x => x.RunId == timer.RunId) ? "Resume" : "Start";
-        bool wide=popout&&availableWidth>=(wideLayout==true?440:470)&&availableHeight<210&&availableHeight>=90;
-        if(wideLayout!=wide)
+        var total=preview?TimeSpan.FromSeconds(4120.375):host.Engine.Total(timer);
+        bool active=!preview&&timer.Alert.Enabled&&timer.AlertState.Active;
+        var color=active&&timer.Alert.ChangeColor?Visuals.Brush(timer.Alert.Color):text;
+        string value=settings.TotalDisplay==TotalDisplay.Rounded?Duration.HoursText(total,settings.RoundMinutes):Appearance.Format(total,style);
+        digits.Update(value,style,color);digits.Measure(new Size(double.PositiveInfinity,double.PositiveInfinity));
+        double ratio=digits.DesiredSize.Width/Math.Max(1,digits.DesiredSize.Height);
+        double target=horizontal?Math.Clamp(style.FontSize*(IsList?settings.TimerScale:1),24,120):24;
+        readout.MinHeight=target;readout.MinWidth=ratio*target;
+        readout.Height=horizontal?target:double.NaN;readout.Width=horizontal?ratio*target:double.NaN;
+        readout.StretchDirection=style.FitDigitsToWindow?StretchDirection.Both:StretchDirection.DownOnly;
+        digits.Opacity=active&&timer.Alert.Flash?(DateTime.UtcNow.Millisecond<500?1:.15):1;
+        start.Visibility=Visible(style.ShowControls);start.Background=Brushes.Transparent;start.Foreground=timer.IsRunning?Brushes.OrangeRed:Brushes.LimeGreen;
+        start.Content=timer.IsRunning?"■":"▶";start.FontSize=horizontal?target*.75:Math.Clamp(h*.2,24,64);start.Padding=new Thickness(2);start.Margin=new Thickness(0,0,6,0);start.MinWidth=32;start.MinHeight=32;start.VerticalAlignment=VerticalAlignment.Center;
+        start.ToolTip=timer.IsRunning?"Stop timer":"Start timer";AutomationProperties.SetName(start,timer.IsRunning?"Stop timer":"Start timer");AutomationProperties.SetAutomationId(start,"TimerToggle");
+        rounded.Text=Duration.HoursText(total,settings.RoundMinutes);rounded.ToolTip=$"Hours, rounded to nearest {settings.RoundMinutes} minutes";rounded.Foreground=text;rounded.FontSize=horizontal?18:14;
+        rounded.Visibility=Visible(style.ShowTotal&&settings.TotalDisplay==TotalDisplay.Both);
+        bool popped=!popout&&host.IsPoppedOut(timer);
+        state.Text=(popped?"↗ POPPED OUT":"")+(active?"  ◉ ALERT":"");state.Foreground=accent;state.Margin=new Thickness(0,0,0,3);state.Visibility=Visible(style.ShowStatus&&(popped||active));
+        bool compact=popout&&!wide&&h<150;
+        double requestedHeight=popout||preview?h:TimerSizing.Requested(settings,timer).Height;
+        double titleWidth=0;
+        if(horizontal)
         {
-            wideLayout=wide;content.ColumnDefinitions.Clear();
-            if(wide){content.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});content.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(225)});}
-            Grid.SetColumn(heading,wide?1:0);Grid.SetColumn(footer,wide?1:0);Grid.SetColumn(readout,0);Grid.SetRow(readout,wide?0:1);Grid.SetRowSpan(readout,wide?3:1);
-            heading.Margin=footer.Margin=wide?new Thickness(12,0,0,0):new Thickness();
+            double dpi=VisualTreeHelper.GetDpi(this).PixelsPerDip;string key=timer.Name+"|"+timer.Description+"|"+dpi;
+            if(titleMeasureKey!=key){titleMeasureKey=key;cachedTitleWidth=new FormattedText(timer.Name,System.Globalization.CultureInfo.CurrentCulture,FlowDirection.LeftToRight,new Typeface(new FontFamily("Segoe UI"),FontStyles.Normal,FontWeights.SemiBold,FontStretches.Normal),14,text,dpi).WidthIncludingTrailingWhitespace;cachedDescriptionWidth=new FormattedText(" — "+timer.Description,System.Globalization.CultureInfo.CurrentCulture,FlowDirection.LeftToRight,new Typeface("Segoe UI"),14,text,dpi).WidthIncludingTrailingWhitespace;}
+            titleWidth=style.ShowTitle?cachedTitleWidth:0;
         }
-        bool compact=availableHeight<170&&!wide;
-        title.Visibility = Visible(style.ShowTitle && (wide?availableHeight>=95:!compact || availableHeight>125));
-        description.Visibility = Visible(style.ShowDescription && (wide?availableHeight>=150&&!active:!compact) && !string.IsNullOrWhiteSpace(timer.Description));
-        state.Visibility = Visible(style.ShowStatus && !compact && (!wide||availableHeight>=180));
-        rounded.Visibility = Visible(style.ShowTotal && !compact && (!wide||availableHeight>=125));
-        buttons.Visibility = Visible(style.ShowControls && !compact && availableWidth>245);
-        alertControls.Visibility = Visible(active && style.ShowControls && !compact && (!wide||availableHeight>=140));
-        readout.Margin=compact?new Thickness():new Thickness(0,3,0,3);
-        BorderBrush = !popout && host.IsPoppedOut(timer) ? accent : Brushes.Transparent;
-        BorderThickness = new Thickness(!popout && host.IsPoppedOut(timer) ? 1 : 0);
-        ToolTip = $"{timer.Name}\n{timer.Description}\nExact total: {Duration.Format(total)}\nRight-click for controls, styles and history.";
+        rounded.Measure(new Size(double.PositiveInfinity,double.PositiveInfinity));
+        double roundedWidth=rounded.Visibility==Visibility.Visible?Math.Max(90,rounded.DesiredSize.Width):0;
+        double bandMin=ratio*target+(style.ShowControls?38:0);
+        double required=bandMin+roundedWidth+titleWidth+(style.ShowControls?145:0)+padding*2+40;
+        bool showDescription=style.ShowDescription&&!string.IsNullOrWhiteSpace(timer.Description)&&!compact&&(!horizontal||w>=required+cachedDescriptionWidth)&&(horizontal||requestedHeight>=180);
+        DescriptionVisible=showDescription;
+        string nextIdentity=$"{timer.Name}|{timer.Description}|{style.ShowTitle}|{compact}|{showDescription}";
+        if(identityKey!=nextIdentity){identityKey=nextIdentity;identity.Inlines.Clear();
+        if(style.ShowTitle&&!compact)identity.Inlines.Add(new Run(timer.Name){FontWeight=FontWeights.SemiBold});
+        if(showDescription)identity.Inlines.Add(new Run((style.ShowTitle?" — ":"")+timer.Description));}
+        identity.Foreground=text;identity.Visibility=Visible(identity.Inlines.Count>0);identity.ToolTip=timer.Name+"\n"+timer.Description;
+        identity.TextWrapping=horizontal?TextWrapping.NoWrap:TextWrapping.Wrap;identity.TextTrimming=horizontal?TextTrimming.None:TextTrimming.CharacterEllipsis;
+        buttons.Visibility=Visible(style.ShowControls&&!compact);alertControls.Visibility=Visible(active&&style.ShowControls&&!compact);
+        heading.Measure(new Size(horizontal?double.PositiveInfinity:Math.Max(45,(w-padding*2)/2-8),double.PositiveInfinity));
+        buttons.Measure(new Size(horizontal?double.PositiveInfinity:Math.Max(45,(w-padding*2)/2),double.PositiveInfinity));
+        double optionalHeight=!horizontal&&!compact?((rounded.Visibility==Visibility.Visible?28:0)+Math.Max(heading.DesiredSize.Height,buttons.Visibility==Visibility.Visible?buttons.DesiredSize.Height:0)+(active&&style.ShowControls?38:0)):0;
+        MinWidth=horizontal&&!popout?Math.Max(250,required):Math.Max(150,ratio*24+(style.ShowControls?38:0)+padding*2);
+        MinHeight=horizontal?Math.Max(48,target+padding*2+(active&&style.ShowControls?38:0)):target+padding*2+optionalHeight;
+        resize.Visibility=Visible(!popout&&!preview&&!IsList&&settings.AllowIndividualResize);
+        returnToWorkspace.IsEnabled=!preview&&popped;
+        BorderBrush=popped?accent:Brushes.Transparent;BorderThickness=new Thickness(popped?1:0);
+        var requested=TimerSizing.Requested(settings,timer);
+        minimumClamped=!popout&&!preview&&(requested.Height<MinHeight||(!IsList&&requested.Width<MinWidth));
+        if(ownerWindow is {} window){window.Title=timer.Name+" — T⁴";window.MinWidth=Math.Max(150,ratio*24+(style.ShowControls?38:0)+padding*2+chrome.Width);window.MinHeight=Math.Max(100,MinHeight+chrome.Height);}
     }
 }

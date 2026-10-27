@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     private bool scratchWorkspace;
     private bool scratchHasEdits;
     private readonly AlertAudio audio;
+    private readonly DispatcherTimer scaleSaveTimer=new(){Interval=TimeSpan.FromMilliseconds(350)};
 
     public MainWindow()
     {
@@ -46,15 +47,17 @@ public partial class MainWindow : Window
         baseline=WorkspaceStore.Copy(workspace);
         Engine = new TimerEngine(workspace);
         InitializeComponent();
-        AppScaleInput.ValueChanged += (_, _) => ScaleChanged(); TimerScaleInput.ValueChanged += (_, _) => ScaleChanged();
-        audio = new AlertAudio(store.Folder, message => { Status.Text = message; saveProblem = true; Notify(message, true); });
+        Root.SizeChanged+=(_,_)=>UpdateZoomEscape();
+        TimerScaleInput.ValueChanged += (_, _) => ScaleChanged(); PopoutScaleInput.ValueChanged += (_, _) => ScaleChanged();
+        audio = new AlertAudio(store.Folder, message => Notify(message, true));
+        scaleSaveTimer.Tick+=(_,_)=>{scaleSaveTimer.Stop();if(!exiting)Changed(false);};
         Loaded += (_, _) =>
         {
             RecoverIfNeeded();
             ready = true; RefreshWorkspaceView();
             Engine.Workspace.CleanShutdown = false;
             if (Engine.Workspace.Settings.AutoSave) Save(false);
-            foreach (var timer in Engine.Workspace.Timers.Where(t => !t.Archived && t.Popout.IsOpen).ToArray()) PopOut(timer);
+            foreach (var timer in Engine.Workspace.Timers.Where(t => !t.Archived && t.Popout.IsOpen).ToArray()) PopOut(timer, true);
             refresh.Tick += (_, _) => Tick(); refresh.Start();
             SystemEvents.PowerModeChanged += OnPowerModeChanged;
             SystemEvents.DisplaySettingsChanged += OnDisplaysChanged;
@@ -82,7 +85,7 @@ public partial class MainWindow : Window
             if (Alerts.Evaluate(timer.Alert, timer.AlertState, Engine.Total(timer), DateTimeOffset.Now, timer.IsRunning)) audio.Play(timer);
         }
         foreach (var card in cardViews.ToArray()) card.Refresh();
-        if (!saveProblem) Status.Text = $"{Engine.Workspace.Timers.Count(t => !t.Archived)} timers  ·  {Engine.Workspace.Timers.Count(t => t.IsRunning)} running  ·  " + (Engine.Workspace.Settings.AutoSave ? "Autosave on" : "Autosave off — use Save now") + (backupWarning is null ? "" : "  ·  " + backupWarning);
+        if (!saveProblem && StatusBar.Visibility==Visibility.Visible) Status.Text = $"{Engine.Workspace.Timers.Count(t => !t.Archived)} timers  ·  {Engine.Workspace.Timers.Count(t => t.IsRunning)} running  ·  " + (Engine.Workspace.Settings.AutoSave ? "Autosave on" : "Autosave off — use Save now") + (backupWarning is null ? "" : "  ·  " + backupWarning);
         if (Engine.Workspace.Settings.AutoSave && System.Diagnostics.Stopwatch.GetElapsedTime(lastSave) > TimeSpan.FromSeconds(5)) Save(false);
     }
     private void ApplySettings()
@@ -91,8 +94,9 @@ public partial class MainWindow : Window
         try
         {
         var s = Engine.Workspace.Settings;
-        AppScaleInput.Value = s.AppScale; TimerScaleInput.Value = s.TimerScale;
+        TimerScaleInput.Value = s.TimerScale; PopoutScaleInput.Value = s.LinkPopoutScale ? s.TimerScale : s.PopoutScale; LinkSize.IsChecked=s.LinkPopoutScale; PopoutScaleInput.IsEnabled=!s.LinkPopoutScale;
         AppTransform.ScaleX = AppTransform.ScaleY = s.AppScale;
+        UpdateZoomEscape();
         var layout = new StackPanel { Orientation = Orientation.Horizontal }; layout.Children.Add(new ToolbarIcon { Kind = s.ListLayout ? "Grid" : "List" }); layout.Children.Add(new TextBlock { Text = s.ListLayout ? "Switch to grid" : "Switch to list", Margin = new Thickness(6,0,0,0) }); LayoutButton.Content = layout;
         StatusBar.Visibility = s.ShowStatusBar ? Visibility.Visible : Visibility.Collapsed;
         Title = Engine.Workspace.Name + " — T⁴";
@@ -108,15 +112,17 @@ public partial class MainWindow : Window
         Cards.MinimumRows = s.ListLayout ? 0 : s.Rows; Cards.EmptyRowHeight = s.CardHeight * s.TimerScale; Cards.Spacing = s.Spacing;
         foreach (var timer in Engine.Workspace.Timers.Where(t => !t.Archived))
         {
-            var card = new TimerCard(this, timer) { Width = timer.Width ?? (s.ListLayout ? Math.Max(s.CardWidth, 580) : s.CardWidth), Height = timer.Height ?? (s.ListLayout ? s.ListRowHeight : s.CardHeight), LayoutTransform = new ScaleTransform(s.TimerScale, s.TimerScale) };
+            var card = new TimerCard(this, timer);
             Cards.Children.Add(card); cardViews.Add(card);
         }
+        UpdateGridColumns(); QueueLayout();
         EmptyState.Visibility = Cards.Children.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
     private void Changed(bool render = true)
     {
         if(scratchWorkspace)scratchHasEdits=true;
         if (render) Render(); foreach (var view in cardViews) view.Refresh();
+        QueueLayout();
         if (!replacingWorkspace && Engine.Workspace.Settings.AutoSave) Save(false);
     }
     private bool Save(bool announce, bool clean = false)
@@ -131,21 +137,23 @@ public partial class MainWindow : Window
         if (!result.Saved)
         {
             saveProblem = true; Status.Text = "Save failed — your current timers are still in memory. " + result.SaveError;
-            Notify(Status.Text,true);
+            Notify(Status.Text,true,"save");
             if (announce || clean) MessageBox.Show(this, Status.Text, "Could not save");
             return false;
         }
         saveProblem = false;
+        ClearNotice("save");
         scratchWorkspace=false;
         if (backupDue)
         {
             // A backup failure must not misreport a successful primary save, or retry every five seconds.
             lastBackup = System.Diagnostics.Stopwatch.GetTimestamp();
             backupWarning = result.BackupWarning is null ? null : "Timers saved; backup failed: " + result.BackupWarning;
+            if(backupWarning is null)ClearNotice("backup");
             if (backupWarning is not null) Status.Text = backupWarning;
         }
-        if (announce) { RefreshWorkspacePicker(); Notify(backupWarning ?? "Saved", backupWarning is not null); }
-        else if (backupWarning is not null) Notify(backupWarning, true);
+        if (announce) { RefreshWorkspacePicker(); Notify(backupWarning ?? "Saved", backupWarning is not null,backupWarning is null?null:"backup",true); }
+        else if (backupWarning is not null) Notify(backupWarning, true,"backup");
         return true;
     }
     private void Preferences() => store.Save(new Workspace { Id=Engine.Workspace.Id,Name=Engine.Workspace.Name,Settings = new AppSettings { AutoSave = Engine.Workspace.Settings.AutoSave, RestoreOnLaunch = Engine.Workspace.Settings.RestoreOnLaunch, ExitChoice = Engine.Workspace.Settings.ExitChoice } }, "preferences");
@@ -181,11 +189,12 @@ public partial class MainWindow : Window
         dialog.Fields.Children.Add(grid); dialog.Label("This is a snapshot. Reopen history to refresh an active segment."); dialog.Actions(("Close", () => dialog.Close())); dialog.ShowDialog();
     }
     public bool IsPoppedOut(TimerRecord timer) => popouts.ContainsKey(timer.Id);
-    public void PopOut(TimerRecord timer)
+    public void PopOut(TimerRecord timer, bool restoring = false)
     {
         if (popouts.TryGetValue(timer.Id, out var existing)) { existing.WindowState = WindowState.Normal; existing.Activate(); return; }
         var position = timer.Popout;
-        var window = new Window { Title = timer.Name + " — T⁴", Icon = Icon, Width = Math.Clamp(position.Width, 150, 1800), Height = Math.Clamp(position.Height, 100, 1400), MinWidth = 150, MinHeight = 100, Topmost = position.Topmost };
+        var initial=TimerSizing.InitialPopout(Engine.Workspace.Settings);
+        var window = new Window { Title = timer.Name + " — T⁴", Icon = Icon, Width = restoring ? Math.Clamp(position.Width,150,1800) : initial.Width, Height = restoring ? Math.Clamp(position.Height,100,1400) : initial.Height, MinWidth = 150, MinHeight = 100, Topmost = position.Topmost };
         if (position.Left is { } left && position.Top is { } top)
         {
             var virtualArea = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
@@ -197,7 +206,7 @@ public partial class MainWindow : Window
         window.Content = card;
         window.ContextMenu = card.ContextMenu;
         popouts[timer.Id] = window;
-        void Remember() { if (window.WindowState != WindowState.Normal) return; position.Left = window.Left; position.Top = window.Top; position.Width = window.Width; position.Height = window.Height; }
+        void Remember() { if (window.WindowState != WindowState.Normal) return; position.Left = window.Left; position.Top = window.Top; position.Width = window.ActualWidth>0?window.ActualWidth:window.Width; position.Height = window.ActualHeight>0?window.ActualHeight:window.Height; }
         window.LocationChanged += (_, _) => Remember(); window.SizeChanged += (_, _) => Remember();
         window.Loaded += (_, _) => WindowPlacementService.EnsureVisible(window);
         window.Closed += (_, _) => { popouts.Remove(timer.Id); cardViews.Remove(card); if (!exiting && !replacingWorkspace) { position.IsOpen = false; Changed(); } };
@@ -230,45 +239,25 @@ public partial class MainWindow : Window
     private void ScaleChanged()
     {
         if (!ready || applyingSettings) return;
-        var s = Engine.Workspace.Settings; s.AppScale = AppScaleInput.Value; s.TimerScale = TimerScaleInput.Value;
-        AppTransform.ScaleX = AppTransform.ScaleY = s.AppScale;
-        foreach (TimerCard card in Cards.Children) card.LayoutTransform = new ScaleTransform(s.TimerScale, s.TimerScale);
-        UpdateGridColumns(); Relayout();
-        Changed(false);
+        var s=Engine.Workspace.Settings; s.TimerScale=TimerScaleInput.Value;
+        if(!s.LinkPopoutScale)s.PopoutScale=PopoutScaleInput.Value;
+        else { applyingSettings=true;PopoutScaleInput.Value=s.TimerScale;applyingSettings=false; }
+        if(scratchWorkspace)scratchHasEdits=true;
+        QueueLayout();scaleSaveTimer.Stop();scaleSaveTimer.Start();
     }
-    private void Layout_Click(object sender, RoutedEventArgs e) { Engine.Workspace.Settings.ListLayout = !Engine.Workspace.Settings.ListLayout; ApplySettings(); Changed(); }
-    private void Export_Click(object sender, RoutedEventArgs e)
+    private void UpdateZoomEscape() => ResetZoom.Visibility=Engine.Workspace.Settings.AppScale>1.25?Visibility.Visible:Visibility.Collapsed;
+    private void ResetZoom_Click(object sender,RoutedEventArgs e){Engine.Workspace.Settings.AppScale=1;ApplySettings();Changed();}
+    private void LinkSize_Changed(object sender,RoutedEventArgs e)
     {
-        var d = new FormDialog(this, "Export recorded time");
-        d.Label("Start date (blank = all history, YYYY-MM-DD)"); var from = d.Text("");
-        d.Label("End date (inclusive, blank = all history)"); var through = d.Text("");
-        var allTimers = d.Check("Export all timers, including archived", true);
-        d.Label("Or select timers (Ctrl/Shift to select several)");
-        var choice = new ListBox { Height = 130, SelectionMode = SelectionMode.Extended, IsEnabled = false, Foreground = Brushes.Black,
-            ItemsSource = Engine.Workspace.Timers.Select(t => new TimerChoice(t.Id, $"{t.Name}{(t.Archived ? " (archived)" : "")} · {t.Id.ToString()[..8]}")).ToArray() };
-        d.Fields.Children.Add(choice); allTimers.Checked += (_, _) => choice.IsEnabled = false; allTimers.Unchecked += (_, _) => choice.IsEnabled = true;
-        d.Label("Rounding basis"); var basis = d.Select(Enum.GetValues<RoundingBasis>(), RoundingBasis.Daily);
-        d.Label("Nearest interval (minutes)"); var round = d.Select(new[] { 1, 15, 60 }, Engine.Workspace.Settings.RoundMinutes);
-        var running = d.Check("Include snapshots of currently running timers", true);
-        d.Label("Summary totals to show"); var totals = d.Select(Enum.GetValues<TotalDisplay>(), TotalDisplay.Both);
-        d.Label("Excel retains exact segment detail. Unselected summary columns are hidden. With monthly rounding, daily totals remain exact. CSV contains exact segment detail only.");
-        d.Actions(("Export…", () =>
-        {
-            try
-            {
-                DateOnly? Parse(string value) => string.IsNullOrWhiteSpace(value) ? null : DateOnly.ParseExact(value.Trim(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-                var ids = allTimers.IsChecked == true ? null : choice.SelectedItems.Cast<TimerChoice>().Select(t => t.Id!.Value).ToArray();
-                if (ids is { Length: 0 }) throw new ArgumentException("Select at least one timer or choose Export all timers.");
-                var options = new ReportOptions(Parse(from.Text), Parse(through.Text), (int)round.SelectedItem, (RoundingBasis)basis.SelectedItem, running.IsChecked == true, TimerIds: ids, Totals: (TotalDisplay)totals.SelectedItem);
-                if (options.From > options.Through) throw new ArgumentException("Start date must be on or before end date.");
-                var save = new SaveFileDialog { Filter = "Excel workbook (*.xlsx)|*.xlsx|CSV detail (*.csv)|*.csv", FileName = $"Tommy-Time-{DateTime.Now:yyyy-MM-dd}.xlsx" };
-                if (save.ShowDialog(d) != true) return;
-                Engine.Checkpoint(); ExcelExport.Write(save.FileName, Engine.Workspace, options);
-                d.DialogResult = true; MessageBox.Show(this, "Your time report has been exported.", "Export complete");
-            }
-            catch (Exception ex) { MessageBox.Show(d, ex.Message, "Could not export"); }
-        }), ("Cancel", () => d.Close())); d.ShowDialog();
+        if(!ready||applyingSettings)return;
+        Engine.Workspace.Settings.LinkPopoutScale=LinkSize.IsChecked==true;ApplySettings();Changed(false);
     }
+    private void Layout_Click(object sender, RoutedEventArgs e)
+    {
+        Engine.Workspace.Settings.ListLayout=!Engine.Workspace.Settings.ListLayout;
+        WorkspaceScroll.ScrollToTop();WorkspaceScroll.ScrollToHorizontalOffset(0);ApplySettings();Changed();QueueLayout();
+    }
+    private void Export_Click(object sender, RoutedEventArgs e) => ExportDialog.Show(this);
     private sealed record TimerChoice(Guid? Id, string Name) { public override string ToString() => Name; }
     private sealed record LoadChoice(string Slot, string Name) { public override string ToString() => Name; }
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -294,6 +283,6 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Could not complete save/discard"); e.Cancel = true; return; }
         try { store.Backup(); } catch { /* The committed workspace is durable even if a secondary backup fails. */ }
-        exiting = true; refresh.Stop(); SystemEvents.PowerModeChanged -= OnPowerModeChanged; SystemEvents.DisplaySettingsChanged -= OnDisplaysChanged; audio.Dispose(); foreach (var window in popouts.Values.ToArray()) window.Close();
+        exiting = true; refresh.Stop();scaleSaveTimer.Stop(); SystemEvents.PowerModeChanged -= OnPowerModeChanged; SystemEvents.DisplaySettingsChanged -= OnDisplaysChanged; audio.Dispose(); foreach (var window in popouts.Values.ToArray()) window.Close();
     }
 }

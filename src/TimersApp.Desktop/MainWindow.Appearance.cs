@@ -105,32 +105,50 @@ public partial class MainWindow
         var color = d.Check("Change display color", a.ChangeColor); var flash = d.Check("Flash display", a.Flash);
         d.Label("Alert color"); var hex = d.Text(a.Color);
         var sound = d.Check("Play sound", a.PlaySound); var repeatSound = d.Check("Repeat sound until dismissed or snoozed", a.RepeatSound);
-        var soundName = new TextBlock { Text = a.SoundPath is null ? "Built-in chime" : System.IO.Path.GetFileName(a.SoundPath), Foreground = Brushes.LightSteelBlue, Margin = new Thickness(0, 8, 0, 8) }; d.Fields.Children.Add(soundName);
-        var browse = new Button { Content = "Choose custom sound…" }; d.Fields.Children.Add(browse);
-        browse.Click += (_, _) => { var file = new OpenFileDialog { Filter = "Audio files|*.wav;*.mp3;*.wma;*.m4a" }; if (file.ShowDialog(d) != true) return; try { a.SoundPath = Assets.Import(file.FileName, false); soundName.Text = System.IO.Path.GetFileName(file.FileName); } catch (Exception ex) { MessageBox.Show(d, ex.Message); } };
-        var builtin = new Button { Content = "Use built-in chime", Margin = new Thickness(0, 8, 0, 0) }; d.Fields.Children.Add(builtin); builtin.Click += (_, _) => { a.SoundPath = null; soundName.Text = "Built-in chime"; };
+        var choices=SoundCatalog.Discover();
+        if(a.SoundPath is null&&a.SystemSound is not null&&choices.All(x=>x.SystemFile!=a.SystemSound)){choices.Add(new SoundChoice("Unavailable Windows sound: "+a.SystemSound,a.SystemSound));d.Label("The saved Windows sound is unavailable here. Playback will use the built-in chime until it becomes available or you choose another sound.");}
+        if(a.SoundPath is not null)choices.Add(new SoundChoice("Custom: "+(a.SoundName??System.IO.Path.GetFileName(a.SoundPath)),CustomPath:a.SoundPath));
+        var selected=a.SoundPath is not null?choices.Last():choices.FirstOrDefault(x=>x.SystemFile==a.SystemSound)??choices.First();
+        d.Label("Alert sound");
+        var soundList=d.Select(choices,selected);
+        var preview=new TimerRecord{AlertState=new(){Active=true}};
+        soundList.SelectionChanged+=(_,_)=>{audio.Stop(preview.Id);if(soundList.SelectedItem is SoundChoice choice){choice.Select(a);}};
+        var browse=new Button{Content="Choose custom WAV or MP3…"};d.Fields.Children.Add(browse);
+        browse.Click+=(_,_)=>{var file=new OpenFileDialog{Filter="WAV or MP3 sound|*.wav;*.mp3"};if(file.ShowDialog(d)!=true)return;try{AlertAudio.Validate(file.FileName);audio.Stop(preview.Id);var choice=new SoundChoice("Custom: "+System.IO.Path.GetFileName(file.FileName),CustomPath:file.FileName,ImportOnApply:true);choices.RemoveAll(x=>x.ImportOnApply);choices.Add(choice);soundList.ItemsSource=null;soundList.ItemsSource=choices;soundList.SelectedItem=choice;}catch(Exception ex){MessageBox.Show(d,ex.Message,"Could not load sound");}};
+        d.Closed+=(_,_)=>audio.Stop(preview.Id);
         d.Label("Volume"); var volume = new Slider { Minimum = 0, Maximum = 1, Value = a.Volume }; d.Fields.Children.Add(volume);
+        System.Windows.Automation.AutomationProperties.SetName(volume,"Alert sound volume");
+        var previewError=new TextBlock{TextWrapping=TextWrapping.Wrap,Foreground=Brushes.Orange};d.Fields.Children.Add(previewError);
         d.Label("Snooze minutes (1–1440)"); var snooze = d.Text(a.SnoozeMinutes.ToString());
         d.Label("Alerts follow exact running time. The next alert occurs at the next multiple of the chosen interval. Right-click a timer to dismiss or snooze.");
         d.Actions(("Apply", () =>
         {
             if (!double.TryParse(interval.Text, out double minutes) || !double.IsFinite(minutes) || minutes < 1d / 60 || minutes > 525600 || !int.TryParse(snooze.Text, out int sn) || sn < 1 || sn > 1440 || !Visuals.ValidColor(hex.Text)) { MessageBox.Show(d, "Check interval, color, and snooze values."); return; }
             a.Enabled = enabled.IsChecked == true; a.IntervalSeconds = minutes * 60; a.Repeat = repeat.IsChecked == true; a.ChangeColor = color.IsChecked == true; a.Flash = flash.IsChecked == true; a.Color = hex.Text; a.PlaySound = sound.IsChecked == true; a.RepeatSound = repeatSound.IsChecked == true; a.Volume = volume.Value; a.SnoozeMinutes = sn;
+            try{if(soundList.SelectedItem is SoundChoice chosen&&chosen.ImportOnApply&&a.SoundPath is not null)a.SoundPath=Assets.Import(a.SoundPath,false);}catch(Exception ex){MessageBox.Show(d,ex.Message,"Could not import sound");return;}
             audio.Stop(timer.Id); timer.Alert = a; timer.AlertState = new AlertState { LastInterval = (long)(Engine.Total(timer).TotalSeconds / a.IntervalSeconds) }; Changed(false); d.DialogResult = true;
-        }), ("Test sound", () => { var sample = new TimerRecord { Alert = Appearance.Copy(a), AlertState = new() { Active = true } }; sample.Alert.PlaySound = true; sample.Alert.Volume = volume.Value; sample.Alert.RepeatSound = false; audio.Play(sample); }), ("Cancel", () => d.Close()));
+        }), ("Test sound", () => { previewError.Text="";preview.Alert=Appearance.Copy(a);preview.Alert.PlaySound=true;preview.Alert.Volume=volume.Value;preview.Alert.RepeatSound=false;audio.Play(preview,message=>previewError.Text=message); }), ("Cancel", () => d.Close()));
         d.ShowDialog();
     }
     public void DismissAlert(TimerRecord timer) { Alerts.Dismiss(timer.AlertState); audio.Stop(timer.Id); Changed(false); }
     public void SnoozeAlert(TimerRecord timer) { Alerts.Snooze(timer.AlertState, DateTimeOffset.Now, timer.Alert.SnoozeMinutes); audio.Stop(timer.Id); Changed(false); }
-    private void Workspace_SizeChanged(object sender, SizeChangedEventArgs e)
+    internal double WorkspaceWidth => double.IsFinite(WorkspaceScroll.ViewportWidth)&&WorkspaceScroll.ViewportWidth>0?WorkspaceScroll.ViewportWidth:Math.Max(250,(ActualWidth>0?ActualWidth:Width)/Engine.Workspace.Settings.AppScale-50);
+    private bool layoutQueued;
+    private void QueueLayout()
     {
-        if (ready && Engine.Workspace.Settings.AutoColumns && !Engine.Workspace.Settings.ListLayout) { UpdateGridColumns(); Relayout(); }
+        if(layoutQueued)return;layoutQueued=true;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,new Action(()=>{layoutQueued=false;if(!exiting){UpdateGridColumns();Relayout();}}));
     }
+    private void Workspace_SizeChanged(object sender, SizeChangedEventArgs e){if(ready)QueueLayout();}
+    private void Workspace_ScrollChanged(object sender,ScrollChangedEventArgs e){if(ready&&(e.ViewportWidthChange!=0||e.ViewportHeightChange!=0))QueueLayout();}
     private void UpdateGridColumns()
     {
-        var s = Engine.Workspace.Settings;
-        double largest = Engine.Workspace.Timers.Where(t => !t.Archived).Select(t => t.Width ?? s.CardWidth).DefaultIfEmpty(s.CardWidth).Max();
-        int columns = s.ListLayout ? 1 : s.AutoColumns && WorkspaceScroll.ViewportWidth > 0 && double.IsFinite(WorkspaceScroll.ViewportWidth) ? Math.Max(1, (int)((WorkspaceScroll.ViewportWidth+s.Spacing) / (largest * s.TimerScale + s.Spacing))) : s.Columns;
-        if(Cards.Columns!=columns){Cards.Columns=columns;Relayout();}
+        var s=Engine.Workspace.Settings;
+        foreach(TimerCard card in Cards.Children)card.ConfigureWorkspace(WorkspaceWidth);
+        double largest=Cards.Children.Cast<TimerCard>().Select(c=>c.Width).DefaultIfEmpty(Math.Max(150,s.CardWidth*s.TimerScale)).Max();
+        int columns=s.ListLayout?1:s.AutoColumns?Math.Max(1,(int)((WorkspaceWidth+s.Spacing)/(largest+s.Spacing))):s.Columns;
+        Cards.Columns=columns;Cards.Spacing=s.Spacing;Cards.MinimumRows=s.ListLayout?0:s.Rows;
+        Cards.EmptyRowHeight=Math.Max(24,s.CardHeight*s.TimerScale);
+        Relayout();
     }
 }

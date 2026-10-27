@@ -15,6 +15,9 @@ internal sealed class TimeReadout : FrameworkElement
     private string measureKey = "";
     private string layoutKey="";
     private string measurementText="00:00:00";
+    private Pen? segmentPen;
+    private static readonly (Point A,Point B)[] Segments=[(new(14,8),new(54,8)),(new(60,15),new(60,49)),(new(60,63),new(60,97)),(new(14,105),new(54,105)),(new(8,63),new(8,97)),(new(8,15),new(8,49)),(new(14,56),new(54,56))];
+    private static readonly int[] Masks=[0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F];
     protected override AutomationPeer OnCreateAutomationPeer() => new ReadoutPeer(this);
     private sealed class ReadoutPeer(TimeReadout owner) : FrameworkElementAutomationPeer(owner)
     {
@@ -30,6 +33,7 @@ internal sealed class TimeReadout : FrameworkElement
         string nextLayout=$"{new string(value.Select(c=>char.IsAsciiDigit(c)?'0':c).ToArray())}|{appearance.FontFamily}|{appearance.Digits}|{appearance.FontSize:R}";
         bool geometryChanged=layoutKey!=nextLayout;layoutKey=nextLayout;measureKey=key;
         text = value; style = appearance; ink = nextInk;
+        if(segmentPen is null||!ReferenceEquals(segmentPen.Brush,ink)){segmentPen=new Pen(ink,9){StartLineCap=PenLineCap.Triangle,EndLineCap=PenLineCap.Triangle};if(segmentPen.CanFreeze)segmentPen.Freeze();}
         if(geometryChanged)
         {
             char widest="0123456789".MaxBy(c=>Text(c.ToString(),style.FontSize).WidthIncludingTrailingWhitespace);
@@ -49,20 +53,15 @@ internal sealed class TimeReadout : FrameworkElement
         if (style.Digits == DigitStyle.Text) { dc.DrawText(Text(text, style.FontSize), new Point()); return; }
         dc.PushTransform(new ScaleTransform(style.FontSize / 100, style.FontSize / 100));
         double x = 0;
-        int[] masks = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F];
         foreach (char c in text)
         {
             if (char.IsAsciiDigit(c))
             {
-                (Point A, Point B)[] segments = [(new(x + 14, 8), new(x + 54, 8)), (new(x + 60, 15), new(x + 60, 49)),
-                    (new(x + 60, 63), new(x + 60, 97)), (new(x + 14, 105), new(x + 54, 105)),
-                    (new(x + 8, 63), new(x + 8, 97)), (new(x + 8, 15), new(x + 8, 49)), (new(x + 14, 56), new(x + 54, 56))];
-                int mask = masks[c - '0'];
+                int mask = Masks[c - '0'];
                 for (int i = 0; i < 7; i++)
                 {
                     dc.PushOpacity((mask & (1 << i)) != 0 ? 1 : .08);
-                    var pen = new Pen(ink, 9) { StartLineCap = PenLineCap.Triangle, EndLineCap = PenLineCap.Triangle };
-                    dc.DrawLine(pen, segments[i].A, segments[i].B); dc.Pop();
+                    dc.DrawLine(segmentPen,new Point(x+Segments[i].A.X,Segments[i].A.Y),new Point(x+Segments[i].B.X,Segments[i].B.Y)); dc.Pop();
                 }
             }
             else if (c == ':') { dc.DrawEllipse(ink, null, new Point(x + 12, 38), 4, 4); dc.DrawEllipse(ink, null, new Point(x + 12, 76), 4, 4); }

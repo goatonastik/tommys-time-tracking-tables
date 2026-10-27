@@ -8,6 +8,7 @@ try {
     Copy-Item -LiteralPath 'SPECIFICATION.md' -Destination $output -Force
     $notices = Join-Path $output 'ThirdPartyLicenses'
     New-Item -ItemType Directory -Path $notices -Force | Out-Null
+    Copy-Item -LiteralPath 'ThirdPartyLicenses/NAudio.txt','ThirdPartyLicenses/NLayer.txt' -Destination $notices -Force
     $assets = Get-Content 'src\TimersApp.Desktop\obj\project.assets.json' -Raw | ConvertFrom-Json
     foreach ($library in $assets.libraries.PSObject.Properties) {
         if ($library.Value.type -ne 'package') { continue }

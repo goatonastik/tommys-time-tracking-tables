@@ -1,0 +1,34 @@
+put "export" button on same row as settings, appearance, etc and make sure the buttons on that row don't collide with the ones above it as they are doing now
+
+remove thje T^4 in the top left, just have the "add clock" button there that takes up the size of two rows (the workspace and buttons rows)
+
+Fix the icon in the window titlebar at the top so the T and the 4 are completely visible and not cut-off
+
+fix the workspace dropdown so  the text is more centered in the box, and make it a bit shorter so you can add "workspace style" text above it.
+
+the app and timer scale bar can go all the way to the left. put application scale in settings. instead have "timer size" for just the timers in the grid/list, and "default pop out size" that only affects the starting size of the pop outs. put an icon in between them to "link" them that is disabled by default (looks like chain links icon like adobe uses)
+
+the timer size when scaling the times allows it to get far too small when resizing vertically.
+
+for export recorded time, have a radio button to "export all", "only todays", "date range", and "custom", and only show the date range below the setting when date range is selected, and only show the "select timers" when custom is selected. remove "export all timers" checkbox obviously.
+
+
+grid view:
+keep the timer name and description in the same line, separated by a dash, but moved to the bottom right of the timer box. allow the description to wrap underneat the title line if needed.
+
+list view: 
+this needs to be optimized to use horizontal space, have the time to the far left of the row, then the "15 minutes rounding" total, then "title - description", then the buttons. when resizing horizontally, have the description disappear first, but don't let it get any smaller than being able to display what is left
+
+switching to grid should automatically attempt to put all the timers in a grid. i currently have to resize the window to get it to "update" the layout when going from a list that has timers not shown due to needing to scroll down
+
+Both:
+
+instead of a resume button and stopped/started status, have the button either be a red square, or a green triangle (for stop or play) directly to the left of the leftmost digit, centered on the line and roughly the height of the row
+
+the "= 00:15:00 - nearest 15 min" shoud instead show something like "0.25" for fifteen minutes, notes as "[hours].[hundredths of an hour]" rounded to the nearest .25 as fifteen minutes
+
+Error when testing alert sound: "could not play the alert sound: windows media player version 10 or later is required". find a free/open source way to natively play .wav or .mp3 files inside the app without requiring additionally installed software. I'd also like to have a dropdown of "premade" sounds, pulled from their windows 11 windows error/notification sounds library if possible, if not, then some open source / free usage library.
+
+for the exported excel list: center the column description text in the topmost row. resize rows so they're as large as the column description, or the data in the column (whichever is larger). Have the columns be, in this order: total time (HH:MM:SS), total time (rounded to 15 minutes as ([hour].[hundredths of an hour]), timer name, timer description (keep this column at 45 units wide), Date started (as example: January 31, 2026), then have actual start, actual stop, Status. Don't worry about daily or monthly totals. remove those rows and tabs. lets limit the timer "segment ID" to just 8 hex characters for simplicity.
+
+I think I'm going to disable being able to individually resize timers in the window by default. put the option to enable it in settings.

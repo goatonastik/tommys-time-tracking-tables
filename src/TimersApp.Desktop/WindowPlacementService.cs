@@ -10,7 +10,18 @@ internal static class WindowPlacementService
     [DllImport("user32.dll")] private static extern nint MonitorFromWindow(nint window, uint flags);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetMonitorInfo(nint monitor, ref MonitorInfo info);
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetWindowRect(nint window, out Rect rect);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetClientRect(nint window, out Rect rect);
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetWindowPos(nint window, nint after, int x, int y, int width, int height, uint flags);
+    internal static Size Chrome(Window window)
+    {
+        var handle=new WindowInteropHelper(window).Handle;
+        if(handle!=0&&GetWindowRect(handle,out var outer)&&GetClientRect(handle,out var inner))
+        {
+            var dpi=System.Windows.Media.VisualTreeHelper.GetDpi(window);
+            return new Size(Math.Max(0,(outer.Right-outer.Left-inner.Right+inner.Left)/dpi.DpiScaleX),Math.Max(0,(outer.Bottom-outer.Top-inner.Bottom+inner.Top)/dpi.DpiScaleY));
+        }
+        var frame=SystemParameters.WindowNonClientFrameThickness;return new Size(frame.Left+frame.Right,frame.Top+frame.Bottom+SystemParameters.WindowCaptionHeight);
+    }
     public static void EnsureVisible(Window window)
     {
         if (window.WindowState != WindowState.Normal) return;

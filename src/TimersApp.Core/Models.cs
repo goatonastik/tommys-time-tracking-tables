@@ -27,6 +27,7 @@ public sealed class AppSettings
     public double TimerScale { get; set; } = 1;
     public double PopoutScale { get; set; } = 1;
     public bool LinkPopoutScale { get; set; }
+    public bool AllowIndividualResize { get; set; }
     public bool ShowStatusBar { get; set; }
     public bool SaveNameSuggestions { get; set; } = true;
     public bool ListLayout { get; set; }
@@ -34,7 +35,7 @@ public sealed class AppSettings
     public bool AutoColumns { get; set; } = true;
     public int Rows { get; set; }
     public double Spacing { get; set; } = 14;
-    public double ListRowHeight { get; set; } = 190;
+    public double ListRowHeight { get; set; } = 72;
     public double CardWidth { get; set; } = 330;
     public double CardHeight { get; set; } = 250;
     public int RoundMinutes { get; set; } = 15;

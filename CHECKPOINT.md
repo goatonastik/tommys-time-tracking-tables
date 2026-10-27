@@ -1,3 +1,29 @@
+# Current checkpoint — notes2 implemented, final review/distribution pending
+
+Updated 2026-10-27. Sol implemented notes2 and the confirmed daily rounding. Read the new top section of PROGRESS.md for completed changes/evidence. Application version 0.3.0. No normal user data was used in testing.
+
+- 57 automated checks pass, zero warnings/errors, artifacts/notes2-build.log. Shown-window pop-out checks and background audio failure tests pass; local MP3 fixture decoded through NLayer.
+- First Claude read-only review completed, substantive findings fixed. Follow-up running in exec session 16160, output artifacts/claude-reviews/20261027-073746-552/review.md when complete. Review snapshots are static; later TimerCard changes use measured description fit and keep wide pop-outs able to narrow. Those changes need final review attention.
+- Intermediate 0.3.0 installer install/launch/uninstall/data-retention smoke passed, but package predates final source fixes. No test installation or app process remains.
+- Pending: finish Claude follow-up/final narrow review, rebuild/test final installer, commit, sync through GitHub connector preserving remote history, verify Windows CI and publish 0.3.0-preview with installer/checksum.
+- Remote main verified at 330e569c40255801d2a1695f33a8195dab732cbe. Local and remote histories differ; no force-push.
+- User explicitly excludes cross-version compatibility work. Fresh user pop-outs use current default size each opening; startup/recovery restores saved geometry. Export rounded value appears once per timer/day and blanks elsewhere; no daily subtotal rows/tabs.
+- Pointer automation still fails GetCursorPos access denied. Do not claim live click flows, audible output, mixed DPI or clean Windows 11 validation.
+
+---
+# Current checkpoint — notes2 planning / ready for Sol
+
+Updated 2026-10-27. The user requested a plan for notes2.txt before switching from Astra to Sol. Planning is complete in FEEDBACK2-IMPLEMENTATION-PLAN.md; no application source, database, package or release has changed. notes2.txt remains untouched.
+
+- Reviewed current header, timer card/grid, scale/pop-out lifecycle, settings persistence, report/export, audio and icon generator against every notes2 item.
+- Structural direction: explicit grid/list/pop-out presentation modes; dimension-based sizing and readable minimums; initial-only pop-out sizing; simplified export selection/table; NAudio + managed NLayer MP3 playback; local Windows sound choices and built-in fallback.
+- User explicitly excluded compatibility with other versions. Do not build cross-version migration/downgrade support. Preserve current data and take a backup before stored-data changes.
+- Claude reviewed the source and proposed plan read-only. Completed review: artifacts/claude-reviews/20261027-041054-268/review.md. Confirmed refinements and intentional decisions are recorded at the end of the plan. First review attempt failed ECONNREFUSED; retry succeeded.
+- User confirmed: round each timer's daily total. The plan retains segment/day detail and places rounded daily hours once on the first row of each timer/day group; other rounded cells are blank. No subtotal rows or tabs. Exact times and original timestamps remain; overnight portions are labeled with allocation dates. No planning questions remain.
+- Baseline remains published v0.2.0-preview, prior 51 checks passed. No new implementation/tests run during this planning pass. Target next preview 0.3.0 after implementation and validation.
+- Next: after the user switches to Sol, read AGENTS.md, notes2.txt and FEEDBACK2-IMPLEMENTATION-PLAN.md and follow the implementation order. Use Claude for read-only code review and isolated data for tests.
+
+---
 # Current checkpoint — notes1 feedback / 0.2.0 preview
 
 Updated 2026-10-27. The notes1 implementation is complete in the working tree, with final read-only review and local installer smoke verification completed. Read AGENTS.md for the Claude read-only requirement and GitHub history rules. The original feedback and architectural plan are retained in notes1.txt and FEEDBACK-IMPLEMENTATION-PLAN.md.

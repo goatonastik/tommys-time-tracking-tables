@@ -12,8 +12,8 @@ Windows 11 desktop application, C# / WPF / .NET 10. No account or server require
 
 ## Workspace and appearance
 - Grid or list; manual columns, rows/automatic rows, cell width/height, spacing, list height, overflow scrolling.
-- Main toolbar App scale and Timer scale sliders with percentage and reset. App scale scales the interface; window size remains independently adjustable.
-- Timer cards and pop-outs independently resizable. Text and seven-segment displays; installed font selection.
+- Main toolbar Timer size and Default pop-out size sliders/percentages, link off by default. Application scale is in Settings. Timer size changes dimensions subject to readable minimums.
+- Individual workspace card resizing disabled by default, enabled in Settings. Pop-out windows remain independently resizable. Text and seven-segment displays; installed font selection.
 - App and timer backgrounds independently support colors/images; fit, fill/crop, original, stretch, tile; corner/center/custom anchor with numeric positioning and visual zoom/pan/crop editor.
 - Copy imported assets into application data storage.
 - Named reusable style presets, import/export, inheritance from app defaults through preset and individual overrides.
@@ -22,12 +22,12 @@ Windows 11 desktop application, C# / WPF / .NET 10. No account or server require
 ## Pop-outs
 - Same timer state, no duplicate timing instance. Close returns timer to workspace.
 - Main entry remains with a Popped out badge, status, live total, focus and return controls.
-- Optional always on top; remember size/position and recover offscreen windows.
+- Optional always on top; remember size/position and recover offscreen windows. Fresh user openings use default starting size; startup/workspace restores use saved geometry. Changing the default never resizes an open window.
 - Separate pop-out style disabled by default. Time-only mode; independent title/description/total/control visibility.
 - Every size supports right-click access to timer controls, history, information, presets/custom style, visibility, always-on-top and return.
 
 ## Alerts
-- Disabled by default. Per-timer one-shot/repeating elapsed interval; color, flashing and/or sound; custom sound, volume, repetition.
+- Disabled by default. Per-timer one-shot/repeating elapsed interval; color, flashing and/or sound; WAV/MP3 decoding and output bundled without WMP, local Windows sound choices, built-in fallback, volume and repetition.
 - Dismiss restores normal appearance; snooze temporarily restores appearance and silences sound then alerts later.
 - Consolidate missed alerts after interruption.
 
@@ -40,11 +40,11 @@ Windows 11 desktop application, C# / WPF / .NET 10. No account or server require
 - Save settings, styles, windows, history and assets; disable autosave without deleting prior saved data.
 
 ## Exports
-- XLSX primary, CSV optional; all history/date range and all/selected timers; optional active snapshot.
-- Detail, daily totals, monthly totals, export information. Calendar month/day grouping, collapsible groups.
-- Exact system start/stop and unique segment ID preserved; split allocation at local midnight and clip at selected range edges.
-- Running segment stop remains blank, with measured-through field.
-- Daily rounding: round each timer/day then sum. Monthly rounding: sum exact timer/month then round. Partial month labeled. Exact numeric durations retained; [h]:mm:ss format.
+- One XLSX sheet or equivalent CSV table for the current workspace. Export all, Only today, Date range or Custom selected timers; include archived timers and optional running snapshots.
+- Ordered columns: exact duration, daily rounded decimal hours, timer name, description (45 units wide), original date started, actual start, actual stop, status, eight-character segment ID.
+- One row per segment/calendar-day portion. Exact measured duration clips to selected local dates. Original timestamps remain unchanged; allocation days and partial segments are labeled. Running stop remains blank with measured-through time in status. Full IDs and offsets remain in workbook comments; CSV timestamps retain offsets.
+- Sum exact ticks per timer/day, round once to nearest 15 minutes (midpoints upward), display decimal hours once on the first row of each timer/day group. Other rounded cells blank. No subtotal rows or daily/monthly/metadata sheets. Filtering detail rows can hide the row carrying the rounded daily total.
+- Centered wrapped headers, fitted columns/rows, numeric durations [h]:mm:ss and decimal hours 0.00. CSV escapes formulas; output replacement is atomic.
 
 ## Implementation milestones
 1. Core timer engine, segment history, persistence/recovery, functional WPF workspace.

@@ -64,14 +64,15 @@ public partial class MainWindow
     private void ReplaceWorkspace(Workspace workspace)
     {
         refresh.Stop(); replacingWorkspace = true;
+        scaleSaveTimer.Stop();
         try
         {
-            audio.Dispose();
+            audio.StopAll();
             foreach (var window in popouts.Values.ToArray()) window.Close();
             Engine = new TimerEngine(workspace);
             Engine.Workspace.CleanShutdown=false;
             RecoverIfNeeded(); ApplySettings(); Render();
-            foreach (var timer in workspace.Timers.Where(t => !t.Archived && t.Popout.IsOpen).ToArray()) PopOut(timer);
+            foreach (var timer in workspace.Timers.Where(t => !t.Archived && t.Popout.IsOpen).ToArray()) PopOut(timer, true);
         }
         finally { replacingWorkspace = false; refresh.Start(); }
         Changed(false);
@@ -83,7 +84,7 @@ public partial class MainWindow
         {
             if (e.Mode == PowerModes.Suspend)
             {
-                suspended = true; audio.Dispose();
+                suspended = true; audio.StopAll();
                 if (Engine.Workspace.Settings.PauseDuringSleep) Engine.SuspendForSleep();
                 else Engine.Checkpoint();
                 if (Engine.Workspace.Settings.AutoSave) Save(false);

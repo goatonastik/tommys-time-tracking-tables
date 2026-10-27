@@ -8,7 +8,7 @@ int passed = 0;
 void Test(string name, Action action)
 {
     try { action(); passed++; Console.WriteLine("PASS " + name); }
-    catch (Exception ex) { failures.Add(name + ": " + ex.Message); Console.WriteLine("FAIL " + name + ": " + ex.Message); }
+    catch (Exception ex) { failures.Add(name + ": " + ex.Message); Console.WriteLine("FAIL " + name + ": " + ex); }
 }
 void Equal<T>(T expected, T actual) { if (!EqualityComparer<T>.Default.Equals(expected, actual)) throw new Exception($"Expected {expected}, got {actual}"); }
 var clock = new ManualClock(); var workspace = new Workspace(); var engine = new TimerEngine(workspace, clock);
@@ -73,18 +73,10 @@ Test("SQLite roundtrip, baseline isolation, and backup", () =>
     var store = new WorkspaceStore(Path.Combine(artifacts, "store-" + Guid.NewGuid().ToString("N"))); store.Save(workspace); var loaded = store.Load()!;
     Equal(workspace.Timers.Count, loaded.Timers.Count); var original = WorkspaceStore.Copy(loaded); loaded.Timers.Clear(); store.Save(loaded); Equal(0, store.Load()!.Timers.Count); store.Save(original); Equal(workspace.Timers.Count, store.Load()!.Timers.Count); store.Backup(); Equal(1, Directory.GetFiles(store.Folder, "backup-*.db").Length);
 });
-Test("Workbook contains numeric durations and four worksheets", () =>
+Test("Workbook contains one table and numeric exact durations", () =>
 {
-    var path = Path.Combine(artifacts, "calendar.xlsx"); ExcelExport.Write(path, reportWorkspace, new(null, null)); using var book = new XLWorkbook(path);
-    Equal(4, book.Worksheets.Count); Equal(TimeSpan.FromMinutes(20).Ticks, book.Worksheet("Session detail").RowsUsed().Skip(1).Where(row => !row.Cell(11).IsEmpty()).Sum(row => row.Cell(10).GetTimeSpan().Ticks));
-    Equal("[h]:mm:ss.000", book.Worksheet("Session detail").Cell(2, 10).Style.NumberFormat.Format);
-});
-Test("Daily and monthly rounding give intentionally different totals", () =>
-{
-    var w = new Workspace(); var t = new TimerRecord(); w.Timers.Add(t);
-    for (int day = 1; day <= 2; day++) { var start = new DateTimeOffset(2025, 1, day, 12, 0, 0, TimeSpan.Zero); t.Segments.Add(new Segment { Start = start, End = start.AddMinutes(7), MeasuredThrough = start.AddMinutes(7), ElapsedTicks = TimeSpan.FromMinutes(7).Ticks }); }
-    string a = Path.Combine(artifacts, "daily.xlsx"), b = Path.Combine(artifacts, "monthly.xlsx"); ExcelExport.Write(a, w, new(null, null)); ExcelExport.Write(b, w, new(null, null, Basis: RoundingBasis.Monthly));
-    using var daily = new XLWorkbook(a); using var monthly = new XLWorkbook(b); Equal(TimeSpan.Zero, daily.Worksheet("Monthly totals").Cell(2, 4).GetTimeSpan()); Equal(TimeSpan.FromMinutes(15), monthly.Worksheet("Monthly totals").Cell(2, 4).GetTimeSpan());
+    var path=Path.Combine(artifacts,"calendar.xlsx");ExcelExport.Write(path,reportWorkspace,new(null,null));using var book=new XLWorkbook(path);var sheet=book.Worksheet("Recorded time");
+    Equal(1,book.Worksheets.Count);Equal(TimeSpan.FromMinutes(20).Ticks,sheet.RowsUsed().Skip(1).Sum(row=>row.Cell(1).GetTimeSpan().Ticks));Equal("[h]:mm:ss",sheet.Cell(2,1).Style.NumberFormat.Format);Equal(45d,sheet.Column(4).Width);
 });
 Test("Elapsed units roll up hidden units and never introduce months", () =>
 {
@@ -131,6 +123,7 @@ Test("One-shot alerts do not rearm after dismiss", () =>
 });
 ReliabilityChecks.Run(Test, artifacts);
 FeedbackChecks.Run(Test, artifacts);
+Feedback2Checks.Run(Test, artifacts);
 Test("Render workspace with three independent timer cards", () =>
 {
     Exception? error = null;
@@ -172,13 +165,13 @@ Test("Render workspace with three independent timer cards", () =>
             popoutHost.Content = null;
             var wideCard=new TimerCard(window,accessibleTimer,popout:true){Width=720,Height=160};
             wideCard.Measure(new System.Windows.Size(720,160));wideCard.Arrange(new System.Windows.Rect(0,0,720,160));wideCard.Refresh();wideCard.UpdateLayout();
-            var wideContent=(System.Windows.Controls.Grid)((System.Windows.Controls.Grid)wideCard.Child).Children[1];Equal(2,wideContent.ColumnDefinitions.Count);
-            var wideButtons=((System.Windows.Controls.StackPanel)wideContent.Children[2]).Children.OfType<System.Windows.Controls.WrapPanel>().First();Equal(System.Windows.Visibility.Visible,wideButtons.Visibility);
-            window.Engine.Workspace.Settings.PopoutScale=.75;window.Engine.Workspace.Settings.TimerScale=1.5;wideCard.Refresh();Equal(.75,((System.Windows.Media.ScaleTransform)wideContent.LayoutTransform).ScaleX);
-            window.Engine.Workspace.Settings.LinkPopoutScale=true;wideCard.Refresh();Equal(1.5,((System.Windows.Media.ScaleTransform)wideContent.LayoutTransform).ScaleX);
+            Equal(true,wideCard.HorizontalPresentation);Equal(true,wideCard.ControlsVisible);
+            window.Engine.Workspace.Settings.PopoutScale=.75;window.Engine.Workspace.Settings.TimerScale=1.5;wideCard.Refresh();Equal(System.Windows.Media.Transform.Identity,wideCard.LayoutTransform);
+            var initial=TimerSizing.InitialPopout(window.Engine.Workspace.Settings);Equal(292.5,initial.Width);
+            window.Engine.Workspace.Settings.LinkPopoutScale=true;Equal(585d,TimerSizing.InitialPopout(window.Engine.Workspace.Settings).Width);
             window.Engine.Workspace.Settings.LinkPopoutScale=false;window.Engine.Workspace.Settings.TimerScale=1;window.Engine.Workspace.Settings.PopoutScale=1;
-            var compactCard=new TimerCard(window,accessibleTimer,popout:true){Width=220,Height=90};compactCard.SetPreview(TimerStyle.Minimal());compactCard.Measure(new System.Windows.Size(220,90));compactCard.Arrange(new System.Windows.Rect(0,0,220,90));compactCard.Refresh();compactCard.UpdateLayout();
-            var compactContent=(System.Windows.Controls.Grid)((System.Windows.Controls.Grid)compactCard.Child).Children[1];Equal(System.Windows.Visibility.Collapsed,((System.Windows.Controls.StackPanel)compactContent.Children[0]).Children[0].Visibility);
+            var compactCard=new TimerCard(window,accessibleTimer,popout:true){Width=220,Height=90};compactCard.SetPreview(TimerStyle.Minimal());compactCard.Measure(new System.Windows.Size(220,90));compactCard.Arrange(new System.Windows.Rect(0,0,220,90));compactCard.Refresh();compactCard.UpdateLayout();Equal(false,compactCard.ControlsVisible);
+            Feedback2Checks.Layout(window,artifacts);
             var scaleControl=new ScaleInput{Value=1.1};int scaleEvents=0;scaleControl.ValueChanged+=(_,_)=>scaleEvents++;var plus=scaleControl.Children.OfType<System.Windows.Controls.Button>().Last();plus.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));Equal(1.25,scaleControl.Value);Equal(1,scaleEvents);
             var mainCard = new TimerCard(window, accessibleTimer);
             Equal(true, mainCard.ContextMenu.Items.OfType<System.Windows.Controls.MenuItem>().Any(item => Equals(item.Header, "Return to workspace")));
@@ -223,11 +216,12 @@ Test("Render workspace with three independent timer cards", () =>
             string archivePath = Path.Combine(artifacts, "portable.t4backup"); WorkspaceArchive.Export(archivePath, data);
             var portable = WorkspaceArchive.Import(archivePath, Path.Combine(folder, "restored")); Equal(3, portable.Timers.Count); Equal(true, File.Exists(portable.Timers[0].Style!.Background.ImagePath)); Equal(.1, portable.Timers[0].Style!.Background.CropX);
             var bg = new ImageBackdrop { Width = 500, Height = 250 }; bg.Update(imported.Style.Background); bg.Measure(new System.Windows.Size(500, 250)); bg.Arrange(new System.Windows.Rect(0, 0, 500, 250)); Equal<string?>(null, bg.ImageError);
+            Feedback2Checks.LiveWindows(window);
         }
         catch (Exception ex) { error = ex; }
     });
     thread.SetApartmentState(ApartmentState.STA); thread.Start(); thread.Join();
-    if (error is not null) throw error;
+    if (error is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
 });
 Console.WriteLine($"{passed} passed, {failures.Count} failed");
 return failures.Count == 0 ? 0 : 1;

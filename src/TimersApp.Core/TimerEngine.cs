@@ -131,6 +131,8 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
 
 public static class Duration
 {
+    public static decimal DecimalHours(TimeSpan value, int minutes = 15) => (decimal)Round(value, minutes).Ticks / TimeSpan.TicksPerHour;
+    public static string HoursText(TimeSpan value, int minutes = 15) => DecimalHours(value, minutes).ToString("0.00", System.Globalization.CultureInfo.CurrentCulture);
     public static TimeSpan Round(TimeSpan value, int minutes)
     {
         if (minutes is not (1 or 15 or 60)) throw new ArgumentOutOfRangeException(nameof(minutes));

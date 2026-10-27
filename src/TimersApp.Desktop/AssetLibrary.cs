@@ -10,13 +10,14 @@ internal sealed class AssetLibrary(string folder)
     public string Import(string path, bool image)
     {
         var file = new FileInfo(path);
-        if (!file.Exists || file.Length > 60 * 1024 * 1024) throw new InvalidDataException("Choose a file smaller than 60 MB.");
+        if(!file.Exists)throw new FileNotFoundException("The selected file is no longer available. Choose it again.",path);
+        if (file.Length > 60 * 1024 * 1024) throw new InvalidDataException("Choose a file smaller than 60 MB.");
         if (image)
         {
             using var input = file.OpenRead(); var decoder = BitmapDecoder.Create(input, BitmapCreateOptions.DelayCreation, BitmapCacheOption.OnLoad);
             var frame = decoder.Frames[0]; if ((long)frame.PixelWidth * frame.PixelHeight > 100_000_000) throw new InvalidDataException("Choose an image smaller than 100 megapixels.");
         }
-        else if (!new[] { ".wav", ".mp3", ".wma", ".m4a" }.Contains(file.Extension.ToLowerInvariant())) throw new InvalidDataException("Choose WAV, MP3, WMA, or M4A audio.");
+        else AlertAudio.Validate(path);
         Directory.CreateDirectory(Path.Combine(folder, "assets"));
         var target = Path.Combine(folder, "assets", Guid.NewGuid().ToString("N") + file.Extension.ToLowerInvariant());
         File.Copy(path, target); return target;

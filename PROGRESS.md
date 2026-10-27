@@ -1,3 +1,23 @@
+# notes2 / v0.3.0 implementation — 2026-10-27
+
+Implemented notes2.txt using FEEDBACK2-IMPLEMENTATION-PLAN.md, including the user's confirmed per-timer daily export rounding. Cross-version compatibility work is excluded.
+
+- Header uses separate measured workspace/command rows, a two-row Add timer area, left-aligned Timer size/default pop-out sizing with chain link, and Settings-only app zoom. High zoom has an unscaled Reset app size escape.
+- Grid and list presentations are distinct. Grid identity sits bottom-right; list fills the viewport with time, decimal rounded hours, identity and actions. Description hides before required content; minimum digit size and measured content prevent unreadable shrinking. Grid columns refresh after mode changes and scrolled lists. Individual resizing defaults off and retains saved dimensions.
+- Fresh pop-outs use the default percentage; restoration uses saved geometry. Live pop-outs do not receive global transforms or resize when defaults/link change. Context menus and minimal styles remain.
+- One Excel/CSV time table with centered headers, 45-unit description width, measured wrapped row heights, exact segment/day portions and original timestamps. Quarter-hour decimal hours appear once per timer/day. No subtotal rows or summary tabs. Full identifiers retained internally/comments; short IDs have collision handling. CSV includes milliseconds and escapes formulas.
+- Bundled NAudio.WinMM 2.2.1 and NLayer 3.0.0 replace WPF MediaPlayer. PCM/float WAV and managed MP3 playback, verified local Windows sound choices, fallback chime, stable preview ownership and deferred custom-file import. Required MIT notices are included. Background-read stop/dispose is synchronized and device failures are handled.
+- Icon frames regenerated with measured ink bounds and padding; 16–48px frames inspected.
+
+Verification so far: build.ps1 passes 57 checks with zero warnings/errors; artifacts/notes2-build.log. Includes daily rounding, overnight/range allocation, duplicate names/short IDs, workbook formatting, WAV/MP3 decoding (local ignored silence fixture), threaded audio failure cleanup, narrow/list/grid renders, scrolled list→grid, and shown WPF pop-out minimum/default-size checks. MP3 fixture source: public blank-audio repository (not redistributed; no license assumed), artifacts/audio-fixtures/silence.mp3; optional local decoder check is not part of the committed test dependencies.
+
+Claude first read-only code review: artifacts/claude-reviews/20261027-072607-530/review.md. Fixed custom sound reselection loss, import-on-Cancel copies, slider rebuilding/save flood, tooltip notice loss, inaccessible slider/date names, audio errors misclassified as save errors, and per-tick title/digit drawing allocations. Retained intentional fresh-pop-out defaults, fixed quarter-hour export rounding, requested Workspace style label, existing snooze deadline behavior and explicit Apply restarting alert configuration. Source documentation supersedes old export expectations.
+
+An intermediate installer passed isolated installation, installed-file hashes (including decoder DLLs/licenses), bundled-runtime launch, accessibility inspection, clean shutdown, uninstall and data retention. Final package must be rebuilt and rechecked after review fixes. Windows blocked pointer input with GetCursorPos access denied; no live click-through or audible playback claim. Actual machine remains Windows 10 22H2; mixed-DPI/multi-monitor, physical audio and clean Windows 11 remain manual checks.
+
+Read-only follow-up review is running at artifacts/claude-reviews/20261027-073746-552/. Finish confirmed findings, rerun affected checks, rebuild final packages and sync/publish v0.3.0-preview without force-pushing. Previous release remains available.
+
+---
 # Implementation handoff
 
 ## Current milestone
