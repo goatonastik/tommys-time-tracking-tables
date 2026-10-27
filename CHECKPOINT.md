@@ -26,18 +26,17 @@ Updated 2026-10-27. The notes1 implementation is complete in the working tree, w
 - artifacts/claude-reviews/20261027-023444-006/review.md: no blocking/data-loss defects; fixed its two follow-ups (pre-recovery baseline classification and newer explicit migration preferences), with regression tests.
 - Final narrow follow-up completed: artifacts/claude-reviews/20261027-024122-176/review.md. No new blocking or medium findings. Optional low-priority hardening is recorded in PROGRESS.md.
 
-## Remaining finalization
+## Completed finalization
 
-1. Final Claude verdict is complete and accepted; no required code fixes remain.
-2. Final installer build and isolated install/launch/uninstall/data-retention test completed. Logs in artifacts/installer-final-0.2.0. SHA256: 71FFF426BD6A33BD67EC642896C74D307D042EEB440695CA612F76CAF887764C.
-3. Record final installer SHA256 and completed review/QA in PROGRESS and here. Commit source/docs locally with existing author Goatonastick. Preserve notes1.txt.
-4. Sync changed source files using GitHub app with a lease; local and remote histories differ, never force-push. Remote main last checked d3ebafeb7143510b03ea29ebbcbf98c403d59fef, tree 4ca94c1513d37a244299780b10046ec96e97d8a6. New icon blob already uploaded: 761da28e0839f00198616c2f5d6a9346aaf774fa. functions store contains feedbackRemoteHead, feedbackBaseTree, feedbackIconBlob.
-5. Publish a NEW v0.2.0-preview GitHub prerelease with installer and checksum; do not overwrite 0.1.0. GitHub connector supports source updates and reading releases but lacks release upload/write tools, so use the signed-in in-app browser for that step. Verify asset size/hash through connector after upload, keep release tab, capture proof image.
-
+- All 51 local checks passed with zero warnings/errors. Final Claude follow-up found no blocking/medium findings; optional hardening and manual QA remain in PROGRESS.md.
+- Final reviewed installer passed isolated install, file hashes, bundled-runtime launch, uninstall and data retention. SHA256: 71FFF426BD6A33BD67EC642896C74D307D042EEB440695CA612F76CAF887764C.
+- Implementation committed locally as 601c26f. Source synced to GitHub commit 87b8f8486b9b9e2384da526f9d76aa156fcf9890 without force-pushing. GitHub Windows workflow 40483209578 completed successfully.
+- Published https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.2.0-preview (release ID 425266077). Installer and checksum uploaded; GitHub digest verified against local file. 0.1.0 remains available separately. Release proof: artifacts/installer/github-release-0.2.0.png.
+- No required implementation/release steps remain for notes1. Await user testing/feedback. Actual pointer/dialog flows, high-DPI/multi-monitor, real sleep/audio and long-history performance remain manual QA; do not claim they passed. Source code should not be changed merely to clear optional review suggestions without a concrete need.
 ## Paths and constraints
 
 - App/installer version is 0.2.0. Installer expected at artifacts/installer/Tommys-Time-Tracking-Tables-Setup-0.2.0.exe; checksum adjacent.
 - Source at C:/TimersApp. sdk.ps1 selects .tools/dotnet/dotnet.exe; Inno Setup at .tools/inno/ISCC.exe.
 - Actual test machine is Windows 10 22H2; Windows 11 target still needs clean-machine/live validation. Installer accepts both and remains unsigned. Close the app before installing/upgrading.
 - Test installations use HKCU uninstall key {17AA17B2-C8E2-4A45-A338-C24D60DAED75}_is1. Guard against an existing user install before testing; only uninstall the exact verified test path. Never test with normal LocalAppData/TimersApp data.
-- Local HEAD before feedback is fe190c9; working changes/new files are staged partly but not committed yet. Current published release is v0.1.0-preview.
+- Local and remote histories remain distinct. The implementation commit is recorded above; a subsequent documentation-only commit records publication. Use the GitHub integration and leases for source synchronization; never force-push.

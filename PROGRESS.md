@@ -127,3 +127,5 @@ Keep generated artifacts and .tools out of version control. There was no existin
 
 - Final narrow Claude review 20261027-024122-176 reported no new blocking or medium findings. Optional follow-ups: use the same slim preferences payload on scratch exit, and tolerate a corrupt legacy preferences slot during migration. Both remain documented; no unverified live-flow claims.
 - Final v0.2.0 installer passed isolated installation, file-hash checks, responsive launch without an external runtime, uninstall and saved-data retention. Logs: artifacts/installer-final-0.2.0. Installer SHA256: 71FFF426BD6A33BD67EC642896C74D307D042EEB440695CA612F76CAF887764C.
+
+- Published v0.2.0-preview to GitHub Releases, ID 425266077, with installer/checksum; uploaded digest matches the final local installer. Source commit 87b8f8486b9b9e2384da526f9d76aa156fcf9890. GitHub Windows workflow 40483209578 passed. Local implementation commit 601c26f; both histories preserved.

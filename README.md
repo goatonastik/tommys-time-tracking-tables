@@ -4,7 +4,7 @@ A Windows 11 desktop stopwatch workspace built with C#, WPF, and .NET 10.
 
 ## Run on Windows 11 (64-bit Intel/AMD)
 
-Run **Tommys-Time-Tracking-Tables-Setup-0.2.0.exe** from `artifacts/installer` to install this preview for your Windows account. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
+Download the installer from [GitHub Releases](https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.2.0-preview) and run **Tommys-Time-Tracking-Tables-Setup-0.2.0.exe** to install this preview for your Windows account. Local builds place it under `artifacts/installer`. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
 
 The installer also accepts Windows 10 22H2, the current test machine. Windows 11 remains the intended target; clean Windows 11 testing is still pending.
 
