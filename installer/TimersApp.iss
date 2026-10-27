@@ -1,5 +1,5 @@
 #define AppName "Tommy's Time Tracking Tables"
-#define AppVersion "0.1.0"
+#define AppVersion "0.2.0"
 #define SourceRoot AddBackslash(SourcePath) + "..\artifacts\release\TommysTimeTrackingTables"
 
 [Setup]
@@ -18,7 +18,7 @@ DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\TimersApp.exe
 SetupIconFile=..\src\TimersApp.Desktop\Resources\T4.ico
 OutputDir=..\artifacts\installer
-OutputBaseFilename=Tommys-Time-Tracking-Tables-Setup-0.1.0
+OutputBaseFilename=Tommys-Time-Tracking-Tables-Setup-0.2.0
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

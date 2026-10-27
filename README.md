@@ -4,7 +4,7 @@ A Windows 11 desktop stopwatch workspace built with C#, WPF, and .NET 10.
 
 ## Run on Windows 11 (64-bit Intel/AMD)
 
-Run **Tommys-Time-Tracking-Tables-Setup-0.1.0.exe** from `artifacts/installer` to install this preview for your Windows account. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
+Run **Tommys-Time-Tracking-Tables-Setup-0.2.0.exe** from `artifacts/installer` to install this preview for your Windows account. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
 
 The installer also accepts Windows 10 22H2, the current test machine. Windows 11 remains the intended target; clean Windows 11 testing is still pending.
 
@@ -16,31 +16,36 @@ From the source workspace, **Start Tommy's Time Tracking Tables.cmd** opens the 
 
 ## Available now
 
+- Named workspaces with a selector, New/Save/Rename/Duplicate/Delete actions and recovery of deleted workspaces. Switching stops timers in the workspace being left; only the selected workspace runs. Duplicate copies are stopped and retain recorded history.
 - Independent named timers with optional descriptions and name suggestions.
 - Start/stop/resume; exact running totals; rounded or combined totals.
 - Segment history with full system timestamps; reset and archive retain historical records.
-- App and timer scale sliders, grid/list switch, column count and card size settings.
+- Editable app/timer scale percentages with 25% step buttons, an independent pop-out scale (optional link), grid/list icons, and layout sliders in settings.
 - Pop-out windows with shared timer state, main-window badge, context menus and always-on-top.
-- Style presets with live preview, installed fonts, vector seven-segment digits, configurable duration units and minimal time-only displays.
+- Two-column style editor with live preview, font samples, preset actions, dimension sliders, vector seven-segment digits and custom number layouts. Use `H:M:S.MS` for `00:00:00.000`; hide-unit-labels is off by default.
 - Separate pop-out styles, size/position persistence and visibility options; hidden buttons remain available by right click.
 - Image backgrounds with fit/fill/original/stretch/tile, anchors, zoom/pan/crop; portable preset import/export with embedded images.
 - Automatic/fixed grid columns, minimum rows, spacing, list height and individual resize handles.
 - Interval color/flashing/audio alerts, custom sounds, dismiss and snooze (disabled by default).
-- SQLite autosave, manual save/load, separate restore preference, recovery choices, save/discard/cancel exit dialog with optional remembered decision.
+- SQLite autosave, a Saved overlay, an optional compact status bar (off by default), recovery choices and save/discard/cancel exit dialog with optional remembered decision.
 - Sleep/resume handling with sleep time excluded by default; backup browser, damaged-database recovery and portable backups containing image/audio assets.
 - Excel detail/daily/monthly/metadata sheets, all-history/date-range filters, daily/monthly rounding and CSV detail.
 
 ## Data
 
-Default location: `%LocalAppData%/TimersApp/workspace.db`. Save/stop/start operations persist immediately when autosave is enabled. Running snapshots are saved every five seconds, so a crash can lose up to the latest checkpoint interval if interruption time is excluded. Timestamped backups are made hourly during autosave, on manual save and on clean exit; the latest 20 are normally retained (locked older files are retried on the next backup). **Backups…** can restore snapshots or export/import a portable `.t4backup` containing the workspace and referenced images/sounds.
+Default location: `%LocalAppData%/TimersApp/workspace.db`. Save/stop/start operations persist immediately when autosave is enabled. Running snapshots are saved every five seconds, so a crash can lose up to the latest checkpoint interval if interruption time is excluded. Timestamped backups are made hourly during autosave, on manual save and on clean exit; the latest 32 are normally retained (locked older files are retried on the next backup). **Backups** configures the database-wide backup limit, disables automatic snapshots, deletes snapshot files, recovers deleted workspaces, or exports/imports a portable `.t4backup` containing one workspace and its referenced images/sounds. Disabling snapshots does not disable timer autosave or explicit portable exports. Database snapshots contain all saved workspaces.
 
-On exit, Save keeps current changes; Discard restores the workspace from the start of this session. Remember this decision is initially unchecked. Reset or archive preserves recorded history. Reports may include archived timers and can filter selected timers or dates. XLSX includes calendar groups and summaries; CSV contains exact session detail only.
+The first upgrade preserves a consistent pre-migration database as `before-workspaces-*.db` and migrates existing content to `default`. This schema is newer than v0.1.0 can read; retain that preserved database if you need to roll back. Newer saved work cannot be opened in the old preview.
+
+Timer-name suggestions can be cleared together or individually. **Do not save name suggestions** stops collecting new names; existing suggestions remain until removed. Workspace settings edit a draft; Reset to defaults does not erase timers or history.
+
+On exit, Save keeps current changes; Discard restores the workspace from when you entered this workspace. Remember this decision is initially unchecked. Reset or archive preserves recorded history. Reports may include archived timers and can filter selected timers or dates. XLSX includes calendar groups and summaries; CSV contains exact session detail only.
 
 Development tests use `TIMERSAPP_DATA_DIR` to isolate their files under `artifacts/`. That environment variable is not required for normal use.
 
 ## Build and verification
 
-Run `./build.ps1` in PowerShell to build and run the 39-check verification suite. Run `./publish.ps1` to produce the self-contained Windows x64 folder and ZIP under `artifacts/release`. Both prefer the project-local .NET 10 SDK and otherwise use an installed .NET 10 SDK. A fresh checkout needs Windows and the .NET 10 SDK; generated files stay under ignored .tools and artifacts folders. Network access is needed when restoring missing packages.
+Run `./build.ps1` in PowerShell to build and run the 51-check verification suite. Run `./publish.ps1` to produce the self-contained Windows x64 folder and ZIP under `artifacts/release`. Both prefer the project-local .NET 10 SDK and otherwise use an installed .NET 10 SDK. A fresh checkout needs Windows and the .NET 10 SDK; generated files stay under ignored .tools and artifacts folders. Network access is needed when restoring missing packages.
 
 The suite covers independent timers, stopped/sleep gaps, duplicate starts, clock changes, reset/history preservation, name snapshots, rounding boundaries, crash recovery, date clipping, leap days, 23/25-hour daylight-saving days, active snapshots, atomic preferences, schema migration, damaged-database recovery, Excel totals/offsets, style inheritance/persistence, alerts/snooze, portable presets/backups, 50 active timers and offscreen WPF layout renders. The standalone app launches and exposes its controls through Windows accessibility. Accessible timer/readout names and dialog labels are checked offscreen; focus a timer and press Shift+F10 or the menu key to reach hidden controls. Live pointer interaction, audible playback, screen readers, mixed-DPI monitors and a clean Windows installation remain unverified.
 

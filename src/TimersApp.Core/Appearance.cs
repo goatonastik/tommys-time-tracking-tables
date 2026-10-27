@@ -30,6 +30,9 @@ public sealed class TimerStyle
     public string AccentColor { get; set; } = "#53D9B0";
     public BackgroundStyle Background { get; set; } = new();
     public TimeUnits Units { get; set; } = TimeUnits.Hours | TimeUnits.Minutes | TimeUnits.Seconds;
+    public bool HideUnitLabels { get; set; }
+    public bool UseCustomFormat { get; set; }
+    public string CustomFormat { get; set; } = "H:M:S.MS";
     public bool ShowTitle { get; set; } = true;
     public bool ShowDescription { get; set; } = true;
     public bool ShowStatus { get; set; } = true;
@@ -61,6 +64,40 @@ public sealed class WindowPlacement
 }
 public static class Appearance
 {
+    private static readonly (string Token, long Ticks, string Format)[] FormatTokens =
+    [("Y", TimeSpan.TicksPerDay * 365, "00"), ("D", TimeSpan.TicksPerDay, "00"),
+     ("H", TimeSpan.TicksPerHour, "00"), ("M", TimeSpan.TicksPerMinute, "00"),
+     ("S", TimeSpan.TicksPerSecond, "00"), ("MS", TimeSpan.TicksPerMillisecond, "000")];
+    public static bool ValidFormat(string? format)
+    {
+        if (string.IsNullOrWhiteSpace(format) || format.Length > 64) return false;
+        var tokens = System.Text.RegularExpressions.Regex.Split(format.ToUpperInvariant(), "[:. ]");
+        int previous = -1;
+        foreach (var token in tokens)
+        {
+            int index = Array.FindIndex(FormatTokens, x => x.Token == token);
+            if (index <= previous) return false;
+            previous = index;
+        }
+        return previous >= 0;
+    }
+    public static string Format(TimeSpan value, TimerStyle style)
+    {
+        if (style.UseCustomFormat && ValidFormat(style.CustomFormat)) return FormatPattern(value, style.CustomFormat.ToUpperInvariant());
+        if (!style.HideUnitLabels) return Format(value, style.Units);
+        string pattern = string.Join(":", FormatTokens.Where((x, i) => style.Units.HasFlag((TimeUnits)(1 << i))).Select(x => x.Token));
+        return FormatPattern(value, pattern.Length == 0 ? "H:M:S" : pattern.Replace(":MS", ".MS"));
+    }
+    private static string FormatPattern(TimeSpan value, string pattern)
+    {
+        long remaining = Math.Max(0, value.Ticks);
+        return System.Text.RegularExpressions.Regex.Replace(pattern, "MS|Y|D|H|M|S", match =>
+        {
+            var step = FormatTokens.First(x => x.Token == match.Value);
+            long count = remaining / step.Ticks; remaining %= step.Ticks;
+            return count.ToString(step.Format, System.Globalization.CultureInfo.InvariantCulture);
+        });
+    }
     public static T Copy<T>(T value) => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value))!;
     public static TimerStyle Resolve(Workspace workspace, TimerRecord timer, bool popout)
     {

@@ -1,37 +1,32 @@
-<Window x:Class="TimersApp.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TimersApp.Desktop" Style="{StaticResource {x:Type Window}}" Title="Tommy’s Time Tracking Tables" Width="1220" Height="820" MinWidth="680" MinHeight="480" WindowStartupLocation="CenterScreen">
-  <Grid x:Name="Root">
-  <local:ImageBackdrop x:Name="AppBackdrop" IsHitTestVisible="False"/>
-  <DockPanel x:Name="Shell" Margin="28">
-    <DockPanel.LayoutTransform><ScaleTransform x:Name="AppTransform"/></DockPanel.LayoutTransform>
-    <StackPanel DockPanel.Dock="Top">
-      <DockPanel Margin="0,0,0,24">
-        <Border DockPanel.Dock="Left" Background="#53D9B0" CornerRadius="12" Width="58" Height="58" Margin="0,0,16,0"><TextBlock Text="T⁴" FontSize="30" FontWeight="Bold" Foreground="#10231E" HorizontalAlignment="Center"/></Border>
-        <StackPanel><TextBlock Text="Tommy’s Time Tracking Tables" FontSize="27" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="Make room for every moment." Foreground="{StaticResource Muted}" Margin="0,5,0,0"/></StackPanel>
-      </DockPanel>
-      <WrapPanel Margin="0,0,0,18">
-        <Button Content="＋  Add timer" Background="#53D9B0" Foreground="#10231E" Click="Add_Click"/>
-        <Button Content="Export…" Click="Export_Click"/>
-        <Button Content="Save now" Click="Save_Click"/>
-        <Button Content="Load saved…" Click="Load_Click"/>
-        <Button Content="Settings" Click="Settings_Click"/>
-        <Button Content="Appearance…" Click="Appearance_Click"/>
-        <Button Content="Backups…" Click="Backups_Click"/>
-      </WrapPanel>
-      <Border Background="{StaticResource PanelBackground}" CornerRadius="10" Padding="16" Margin="0,0,0,24">
-        <WrapPanel VerticalAlignment="Center">
-          <TextBlock Text="App scale" Margin="0,0,10,0"/><Slider x:Name="AppSlider" AutomationProperties.Name="App scale" Minimum="0.65" Maximum="1.6" Value="1" Width="110" VerticalAlignment="Center" ValueChanged="Scale_Changed"/><TextBlock x:Name="AppPercent" Text="100%" Width="48" Margin="8,0,0,0"/><Button Content="↺" ToolTip="Reset app scale" AutomationProperties.Name="Reset app scale" Click="ResetApp_Click" Padding="8,4"/>
-          <TextBlock Text="Timer scale" Margin="14,0,10,0"/><Slider x:Name="TimerSlider" AutomationProperties.Name="Timer scale" Minimum="0.6" Maximum="1.8" Value="1" Width="110" VerticalAlignment="Center" ValueChanged="Scale_Changed"/><TextBlock x:Name="TimerPercent" Text="100%" Width="48" Margin="8,0,0,0"/><Button Content="↺" ToolTip="Reset timer scale" AutomationProperties.Name="Reset timer scale" Click="ResetTimer_Click" Padding="8,4"/>
-          <Button x:Name="LayoutButton" Content="Switch to list" Click="Layout_Click" Padding="10,5" Margin="16,0,0,0"/>
-        </WrapPanel>
-      </Border>
-    </StackPanel>
-    <DockPanel DockPanel.Dock="Bottom" Margin="0,16,0,0"><TextBlock x:Name="Status" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/></DockPanel>
-    <ScrollViewer x:Name="WorkspaceScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" SizeChanged="Workspace_SizeChanged">
-      <StackPanel>
-        <TextBlock x:Name="EmptyState" Text="Your workspace is ready. Add your first timer to begin." Foreground="{StaticResource Muted}" FontSize="18" Margin="8,36"/>
-        <local:TimerGridPanel x:Name="Cards" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-      </StackPanel>
-    </ScrollViewer>
-  </DockPanel>
-  </Grid>
-</Window>
+<Window x:Class="TimersApp.Desktop.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:TimersApp.Desktop" Style="{StaticResource {x:Type Window}}" Title="T⁴" Width="1220" Height="820" MinWidth="480" MinHeight="360" WindowStartupLocation="CenterScreen" Icon="Resources/T4.ico">
+<Grid x:Name="Root">
+<local:ImageBackdrop x:Name="AppBackdrop" IsHitTestVisible="False"/>
+<DockPanel x:Name="Shell" Margin="16">
+<DockPanel.LayoutTransform><ScaleTransform x:Name="AppTransform"/></DockPanel.LayoutTransform>
+<DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+<Border DockPanel.Dock="Left" Background="#53D9B0" CornerRadius="9" Width="52" Height="52" VerticalAlignment="Top" Margin="0,0,12,0"><TextBlock Text="T⁴" FontSize="36" FontWeight="Bold" Foreground="#10231E" HorizontalAlignment="Center"/></Border>
+<WrapPanel>
+<WrapPanel MaxWidth="580" Margin="0,0,12,8">
+<Button Background="#53D9B0" Padding="9" ToolTip="Add timer" AutomationProperties.Name="Add timer" Click="Add_Click"><local:ToolbarIcon Kind="AddTimer"/></Button>
+<ComboBox x:Name="WorkspacePicker" Width="150" Height="38" Foreground="Black" DisplayMemberPath="Name" SelectedValuePath="Id" ToolTip="Saved workspaces" AutomationProperties.Name="Saved workspaces" SelectionChanged="Workspace_Selected" Margin="0,0,8,8"/>
+<Button ToolTip="New workspace" AutomationProperties.Name="New workspace" Click="NewWorkspace_Click" Padding="9"><local:ToolbarIcon Kind="Plus"/></Button>
+<Button ToolTip="Save workspace" AutomationProperties.Name="Save workspace" Click="Save_Click" Padding="9"><local:ToolbarIcon Kind="Save"/></Button>
+<Button ToolTip="Rename workspace" AutomationProperties.Name="Rename workspace" Click="RenameWorkspace_Click" Padding="9"><local:ToolbarIcon Kind="Rename"/></Button>
+<Button ToolTip="Duplicate workspace" AutomationProperties.Name="Duplicate workspace" Click="DuplicateWorkspace_Click" Padding="9"><local:ToolbarIcon Kind="Copy"/></Button>
+<Button ToolTip="Delete workspace" AutomationProperties.Name="Delete workspace" Click="DeleteWorkspace_Click" Padding="9"><local:ToolbarIcon Kind="Delete"/></Button>
+<Button Content="Export" Click="Export_Click" Margin="0,0,8,8"/><Button Content="Settings" Click="Settings_Click" Margin="0,0,8,8"/><Button Content="Appearance" Click="Appearance_Click" Margin="0,0,8,8"/><Button Content="Backups" Click="Backups_Click" Margin="0,0,8,8"/>
+</WrapPanel>
+<Border Background="{StaticResource PanelBackground}" CornerRadius="9" Padding="10" Margin="0,0,0,8" MaxWidth="580">
+<WrapPanel>
+<StackPanel Orientation="Horizontal" Margin="0,0,12,8"><TextBlock Text="App" Margin="0,0,6,0"/><local:ScaleInput x:Name="AppScaleInput" Label="App scale percent"/></StackPanel>
+<StackPanel Orientation="Horizontal" Margin="0,0,12,8"><TextBlock Text="Timers" Margin="0,0,6,0"/><local:ScaleInput x:Name="TimerScaleInput" Label="Timer scale percent"/></StackPanel>
+<Button x:Name="LayoutButton" Click="Layout_Click" Padding="8,4"/>
+</WrapPanel></Border>
+</WrapPanel></DockPanel>
+<Border x:Name="StatusBar" DockPanel.Dock="Bottom" Padding="0,2" Visibility="Collapsed"><TextBlock x:Name="Status" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/></Border>
+<ScrollViewer x:Name="WorkspaceScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Visible" SizeChanged="Workspace_SizeChanged">
+<StackPanel><TextBlock x:Name="EmptyState" Text="Your workspace is ready. Add your first timer to begin." Foreground="{StaticResource Muted}" FontSize="18" Margin="8,36" TextWrapping="Wrap"/><local:TimerGridPanel x:Name="Cards" HorizontalAlignment="Left" VerticalAlignment="Top"/></StackPanel>
+</ScrollViewer>
+</DockPanel>
+<Border x:Name="Toast" Visibility="Collapsed" VerticalAlignment="Top" HorizontalAlignment="Center" Background="#293B55" CornerRadius="8" Padding="20,10" Margin="12"><TextBlock x:Name="ToastText" Text="Saved" FontSize="16" TextWrapping="Wrap" MaxWidth="400"/></Border>
+</Grid></Window>

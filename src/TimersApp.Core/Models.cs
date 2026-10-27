@@ -7,7 +7,9 @@ public enum ExitChoice { Ask, Save, Discard }
 
 public sealed class Workspace
 {
-    public int SchemaVersion { get; set; } = 2;
+    public int SchemaVersion { get; set; } = 3;
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = "default";
     public List<TimerRecord> Timers { get; set; } = [];
     public List<string> NameHistory { get; set; } = [];
     public AppSettings Settings { get; set; } = new();
@@ -23,6 +25,10 @@ public sealed class AppSettings
     public ExitChoice ExitChoice { get; set; }
     public double AppScale { get; set; } = 1;
     public double TimerScale { get; set; } = 1;
+    public double PopoutScale { get; set; } = 1;
+    public bool LinkPopoutScale { get; set; }
+    public bool ShowStatusBar { get; set; }
+    public bool SaveNameSuggestions { get; set; } = true;
     public bool ListLayout { get; set; }
     public int Columns { get; set; } = 3;
     public bool AutoColumns { get; set; } = true;

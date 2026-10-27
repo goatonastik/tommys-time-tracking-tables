@@ -122,6 +122,7 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
 
     private void RememberName(string name)
     {
+        if (!Workspace.Settings.SaveNameSuggestions) return;
         Workspace.NameHistory.RemoveAll(x => x.Equals(name, StringComparison.OrdinalIgnoreCase));
         Workspace.NameHistory.Insert(0, name);
     }

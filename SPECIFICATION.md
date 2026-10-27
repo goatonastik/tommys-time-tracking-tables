@@ -54,3 +54,13 @@ Windows 11 desktop application, C# / WPF / .NET 10. No account or server require
 5. Windows accessibility, sleep/clock/multi-monitor checks, installer and release QA.
 
 Model preference: Astra Medium for architecture and difficult correctness review; Sol Medium for routine UI implementation and polish. Tell user when a switch is worthwhile. No automatic model switching.
+
+## Feedback revision: notes1.txt (0.2.0 preview)
+
+- Named saved workspaces, default name `default`, with selector and New/Save/Rename/Duplicate/Delete icon actions. Only the selected workspace runs; switching offers save/discard/cancel when needed and deliberately stops departing timers. Deletions remain recoverable; duplication preserves history with stopped totals and new workspace identity.
+- Responsive grouped toolbar beside T⁴, with long in-window heading/tagline removed. Percent inputs replace main scale sliders; +/- selects the next/previous 25% step. Independent pop-out scale defaults to 100%, with linking to timer scale off by default.
+- Saved overlay replaces successful-save dialogs. Compact status bar is optional and off by default; failures remain visible independently. Consistent grid/list icons, smaller timer button height, resize grip at least twice the original size, larger icon artwork and responsive short/wide pop-outs.
+- Two-column style settings beside a live preview, top preset actions, font entries with numeric samples, grouped font-size/padding/radius sliders, optional hidden unit labels (off), and validated custom formats using Y/D/H/M/S/MS. `H:M:S.MS` means hours:minutes:seconds.milliseconds; no calendar-month duration token.
+- Workspace settings use layout sliders and draft-only Reset to defaults. Name-suggestion manager supports Remove all and stops collecting when Do not save name suggestions is selected; old suggestions remain until removed.
+- Database-wide automatic backups default to 32, may be disabled independently of timer autosave, and may be deleted explicitly. Portable exports and recovery copies remain separate. Migration preserves a consistent database copy before assigning persistent workspace identity.
+- Explicit preset save/delete and suggestion-management actions apply immediately, with explanatory text; cancelling a surrounding editor discards its draft only. Session Discard continues to restore entry-time settings and history, as originally agreed. Remembered exit decisions retain their existing semantics.

@@ -25,6 +25,8 @@ public partial class MainWindow : Window
     private bool saveProblem;
     private string? backupWarning;
     private bool applyingSettings;
+    private bool scratchWorkspace;
+    private bool scratchHasEdits;
     private readonly AlertAudio audio;
 
     public MainWindow()
@@ -38,10 +40,14 @@ public partial class MainWindow : Window
         if (!settings.RestoreOnLaunch && saved is not null && saved.Timers.Count > 0)
             store.Save(saved, "previous-workspace");
         var workspace = settings.RestoreOnLaunch ? saved ?? new Workspace() : new Workspace();
+        scratchWorkspace=!settings.RestoreOnLaunch;
+        if(scratchWorkspace){workspace.Name=UniqueWorkspaceName("default");baseline=WorkspaceStore.Copy(workspace);}
         workspace.Settings.AutoSave = settings.AutoSave; workspace.Settings.RestoreOnLaunch = settings.RestoreOnLaunch; workspace.Settings.ExitChoice = settings.ExitChoice;
+        baseline=WorkspaceStore.Copy(workspace);
         Engine = new TimerEngine(workspace);
         InitializeComponent();
-        audio = new AlertAudio(store.Folder, message => { Status.Text = message; saveProblem = true; });
+        AppScaleInput.ValueChanged += (_, _) => ScaleChanged(); TimerScaleInput.ValueChanged += (_, _) => ScaleChanged();
+        audio = new AlertAudio(store.Folder, message => { Status.Text = message; saveProblem = true; Notify(message, true); });
         Loaded += (_, _) =>
         {
             RecoverIfNeeded();
@@ -85,10 +91,12 @@ public partial class MainWindow : Window
         try
         {
         var s = Engine.Workspace.Settings;
-        AppSlider.Value = s.AppScale; TimerSlider.Value = s.TimerScale;
+        AppScaleInput.Value = s.AppScale; TimerScaleInput.Value = s.TimerScale;
         AppTransform.ScaleX = AppTransform.ScaleY = s.AppScale;
-        AppPercent.Text = $"{s.AppScale:P0}"; TimerPercent.Text = $"{s.TimerScale:P0}";
-        LayoutButton.Content = s.ListLayout ? "Switch to grid" : "Switch to list";
+        var layout = new StackPanel { Orientation = Orientation.Horizontal }; layout.Children.Add(new ToolbarIcon { Kind = s.ListLayout ? "Grid" : "List" }); layout.Children.Add(new TextBlock { Text = s.ListLayout ? "Switch to grid" : "Switch to list", Margin = new Thickness(6,0,0,0) }); LayoutButton.Content = layout;
+        StatusBar.Visibility = s.ShowStatusBar ? Visibility.Visible : Visibility.Collapsed;
+        Title = Engine.Workspace.Name + " — T⁴";
+        RefreshWorkspacePicker();
         AppBackdrop.Update(s.AppBackground);
         }
         finally { applyingSettings = false; }
@@ -107,11 +115,13 @@ public partial class MainWindow : Window
     }
     private void Changed(bool render = true)
     {
+        if(scratchWorkspace)scratchHasEdits=true;
         if (render) Render(); foreach (var view in cardViews) view.Refresh();
         if (!replacingWorkspace && Engine.Workspace.Settings.AutoSave) Save(false);
     }
     private bool Save(bool announce, bool clean = false)
     {
+        if(scratchWorkspace&&!scratchHasEdits&&Engine.Workspace.Timers.Count==0&&!announce)return true;
         bool backupDue = announce || System.Diagnostics.Stopwatch.GetElapsedTime(lastBackup) > TimeSpan.FromHours(1);
         var result = PersistenceResult.Run(() =>
         {
@@ -121,10 +131,12 @@ public partial class MainWindow : Window
         if (!result.Saved)
         {
             saveProblem = true; Status.Text = "Save failed — your current timers are still in memory. " + result.SaveError;
+            Notify(Status.Text,true);
             if (announce || clean) MessageBox.Show(this, Status.Text, "Could not save");
             return false;
         }
         saveProblem = false;
+        scratchWorkspace=false;
         if (backupDue)
         {
             // A backup failure must not misreport a successful primary save, or retry every five seconds.
@@ -132,10 +144,11 @@ public partial class MainWindow : Window
             backupWarning = result.BackupWarning is null ? null : "Timers saved; backup failed: " + result.BackupWarning;
             if (backupWarning is not null) Status.Text = backupWarning;
         }
-        if (announce) MessageBox.Show(this, backupWarning ?? "Timers and settings saved.", backupWarning is null ? "Saved" : "Saved with backup warning");
+        if (announce) { RefreshWorkspacePicker(); Notify(backupWarning ?? "Saved", backupWarning is not null); }
+        else if (backupWarning is not null) Notify(backupWarning, true);
         return true;
     }
-    private void Preferences() => store.Save(new Workspace { Settings = new AppSettings { AutoSave = Engine.Workspace.Settings.AutoSave, RestoreOnLaunch = Engine.Workspace.Settings.RestoreOnLaunch, ExitChoice = Engine.Workspace.Settings.ExitChoice } }, "preferences");
+    private void Preferences() => store.Save(new Workspace { Id=Engine.Workspace.Id,Name=Engine.Workspace.Name,Settings = new AppSettings { AutoSave = Engine.Workspace.Settings.AutoSave, RestoreOnLaunch = Engine.Workspace.Settings.RestoreOnLaunch, ExitChoice = Engine.Workspace.Settings.ExitChoice } }, "preferences");
     public void Toggle(TimerRecord timer) { if (timer.IsRunning) Engine.Stop(timer); else Engine.Start(timer); Changed(false); }
     public void Reset(TimerRecord timer)
     {
@@ -172,7 +185,7 @@ public partial class MainWindow : Window
     {
         if (popouts.TryGetValue(timer.Id, out var existing)) { existing.WindowState = WindowState.Normal; existing.Activate(); return; }
         var position = timer.Popout;
-        var window = new Window { Title = timer.Name + " — T⁴", Width = Math.Clamp(position.Width, 150, 1800), Height = Math.Clamp(position.Height, 100, 1400), MinWidth = 150, MinHeight = 100, Topmost = position.Topmost };
+        var window = new Window { Title = timer.Name + " — T⁴", Icon = Icon, Width = Math.Clamp(position.Width, 150, 1800), Height = Math.Clamp(position.Height, 100, 1400), MinWidth = 150, MinHeight = 100, Topmost = position.Topmost };
         if (position.Left is { } left && position.Top is { } top)
         {
             var virtualArea = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
@@ -197,69 +210,33 @@ public partial class MainWindow : Window
     {
         try
         {
-            var dialog = new FormDialog(this, "Load saved workspace");
-            dialog.Label("Loading replaces the current workspace. A recovery copy is saved first in the 'before restore' slot; that slot keeps only the most recently displaced workspace.");
+            var owner=sender is DependencyObject element?Window.GetWindow(element)??this:this;
+            var dialog = new FormDialog(owner, "Load saved workspace");
+            dialog.Label("Choose a saved copy, then import it as a new workspace or explicitly replace the current one. Replacing saves a recovery copy first; that slot keeps only the most recently displaced workspace.");
             var choices = new List<LoadChoice> { new("current", "Latest saved workspace") };
-            if (store.Load("previous-workspace") is not null) choices.Add(new("previous-workspace", "Previous workspace kept when launch restoration was off"));
-            if (store.Load("before-restore") is not null) choices.Add(new("before-restore", "Workspace preserved before the last restore"));
+            foreach(var slot in new[]{("previous-workspace","Previous workspace kept when launch restoration was off"),("before-restore","Workspace preserved before the last restore")})
+            {
+                try{if(store.Load(slot.Item1) is { } snapshot)choices.Add(new(slot.Item1,$"{slot.Item2} · {snapshot.SavedAt.LocalDateTime:yyyy-MM-dd HH:mm}"));}
+                catch(Exception ex){dialog.Label($"Recovery copy '{slot.Item1}' could not be read: {ex.Message}. Other saved copies remain available.");}
+            }
             var selected = dialog.Select(choices, choices[0]);
             dialog.Actions(("Load workspace", () => dialog.DialogResult = true), ("Cancel", () => dialog.Close()));
             if (dialog.ShowDialog() != true) return;
             var saved = store.Load(((LoadChoice)selected.SelectedItem).Slot); if (saved is null) return;
-            PreserveBeforeRestore();
-            ReplaceWorkspace(saved);
+            RestoreOrImport(saved,owner);
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Load failed"); }
     }
-    private void Scale_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void ScaleChanged()
     {
         if (!ready || applyingSettings) return;
-        var s = Engine.Workspace.Settings; s.AppScale = AppSlider.Value; s.TimerScale = TimerSlider.Value;
+        var s = Engine.Workspace.Settings; s.AppScale = AppScaleInput.Value; s.TimerScale = TimerScaleInput.Value;
         AppTransform.ScaleX = AppTransform.ScaleY = s.AppScale;
-        AppPercent.Text = $"{s.AppScale:P0}"; TimerPercent.Text = $"{s.TimerScale:P0}";
         foreach (TimerCard card in Cards.Children) card.LayoutTransform = new ScaleTransform(s.TimerScale, s.TimerScale);
         UpdateGridColumns(); Relayout();
+        Changed(false);
     }
-    private void ResetApp_Click(object sender, RoutedEventArgs e) => AppSlider.Value = 1;
-    private void ResetTimer_Click(object sender, RoutedEventArgs e) => TimerSlider.Value = 1;
     private void Layout_Click(object sender, RoutedEventArgs e) { Engine.Workspace.Settings.ListLayout = !Engine.Workspace.Settings.ListLayout; ApplySettings(); Changed(); }
-    private void Settings_Click(object sender, RoutedEventArgs e)
-    {
-        var s = Engine.Workspace.Settings; var d = new FormDialog(this, "Workspace settings");
-        var autosave = d.Check("Automatically save timers and settings", s.AutoSave);
-        var restore = d.Check("Restore saved workspace on launch", s.RestoreOnLaunch);
-        var pauseSleep = d.Check("Pause timers while the PC sleeps, then resume automatically", s.PauseDuringSleep);
-        d.Label("Exit decision"); var exit = d.Select(Enum.GetValues<ExitChoice>(), s.ExitChoice);
-        d.Label("Round to nearest (minutes)"); var round = d.Select(new[] { 1, 15, 60 }, s.RoundMinutes);
-        d.Label("Total display"); var display = d.Select(Enum.GetValues<TotalDisplay>(), s.TotalDisplay);
-        d.Label("Grid columns"); var columns = d.Select(Enumerable.Range(1, 8), s.Columns);
-        var autoColumns = d.Check("Automatically fit columns to the available width", s.AutoColumns);
-        d.Label("Minimum grid rows (0 = automatic; extra timers scroll)"); var rows = d.Text(s.Rows.ToString());
-        d.Label("Space between timers (0–80)"); var spacing = d.Text(s.Spacing.ToString());
-        d.Label("Card width"); var width = d.Text(s.CardWidth.ToString());
-        d.Label("Default card height"); var height = d.Text(s.CardHeight.ToString());
-        d.Label("List row height"); var listHeight = d.Text(s.ListRowHeight.ToString());
-        var resetSizes = d.Check("Reset individual card sizes to these defaults", false);
-        var clear = d.Check("Clear timer-name suggestion history", false);
-        var names = new Button { Content = "Manage name suggestions…", Margin = new Thickness(0, 8, 0, 0) }; d.Fields.Children.Add(names);
-        names.Click += (_, _) => ManageNames(d);
-        d.Actions(("Apply", () =>
-        {
-            if (!double.TryParse(width.Text, out var w) || !double.TryParse(height.Text, out var h) || !double.IsFinite(w) || !double.IsFinite(h) || w < 250 || w > 1200 || h < 220 || h > 1200)
-            { MessageBox.Show(d, "Use a width from 250 to 1200 and a height from 220 to 1200."); return; }
-            if (!int.TryParse(rows.Text, out int rowCount) || rowCount < 0 || rowCount > 100 || !double.TryParse(spacing.Text, out double gap) || !double.IsFinite(gap) || gap < 0 || gap > 80 || !double.TryParse(listHeight.Text, out double rowHeight) || !double.IsFinite(rowHeight) || rowHeight < 100 || rowHeight > 1200)
-            { MessageBox.Show(d, "Use 0–100 grid rows, 0–80 spacing, and a list height from 100 to 1200."); return; }
-            s.AutoSave = autosave.IsChecked == true; s.RestoreOnLaunch = restore.IsChecked == true; s.ExitChoice = (ExitChoice)exit.SelectedItem;
-            s.PauseDuringSleep = pauseSleep.IsChecked == true;
-            s.RoundMinutes = (int)round.SelectedItem; s.TotalDisplay = (TotalDisplay)display.SelectedItem; s.Columns = (int)columns.SelectedItem; s.CardWidth = w; s.CardHeight = h;
-            s.AutoColumns = autoColumns.IsChecked == true; s.Rows = rowCount; s.Spacing = gap; s.ListRowHeight = rowHeight;
-            if (resetSizes.IsChecked == true) foreach (var t in Engine.Workspace.Timers) { t.Width = null; t.Height = null; }
-            if (clear.IsChecked == true) Engine.Workspace.NameHistory.Clear();
-            try { Preferences(); } catch (Exception ex) { MessageBox.Show(d, ex.Message, "Could not save preferences"); return; }
-            d.DialogResult = true;
-        }), ("Cancel", () => d.Close()));
-        if (d.ShowDialog() == true) { ApplySettings(); Changed(); }
-    }
     private void Export_Click(object sender, RoutedEventArgs e)
     {
         var d = new FormDialog(this, "Export recorded time");
@@ -313,7 +290,7 @@ public partial class MainWindow : Window
         {
             Engine.Checkpoint();
             var committed = ExitWorkspace.Prepare(Engine.Workspace, baseline, choice, remember);
-            store.Save(committed);
+            if(scratchWorkspace&&(choice==ExitChoice.Discard||(!scratchHasEdits&&Engine.Workspace.Timers.Count==0)))store.Save(committed,"preferences");else store.Save(committed);
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Could not complete save/discard"); e.Cancel = true; return; }
         try { store.Backup(); } catch { /* The committed workspace is durable even if a secondary backup fails. */ }

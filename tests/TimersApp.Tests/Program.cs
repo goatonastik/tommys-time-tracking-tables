@@ -130,6 +130,7 @@ Test("One-shot alerts do not rearm after dismiss", () =>
     Equal(true, Alerts.Evaluate(a, s, TimeSpan.FromSeconds(40), now, true)); Alerts.Dismiss(s); Equal(false, Alerts.Evaluate(a, s, TimeSpan.FromSeconds(90), now, true));
 });
 ReliabilityChecks.Run(Test, artifacts);
+FeedbackChecks.Run(Test, artifacts);
 Test("Render workspace with three independent timer cards", () =>
 {
     Exception? error = null;
@@ -146,7 +147,16 @@ Test("Render workspace with three independent timer cards", () =>
             }
             new WorkspaceStore(folder).Save(data);
             var app = new App(); app.InitializeComponent();
+            app.ShutdownMode=System.Windows.ShutdownMode.OnExplicitShutdown;
+            string freshFolder=Path.Combine(artifacts,"first-session-"+Guid.NewGuid().ToString("N"));Environment.SetEnvironmentVariable("TIMERSAPP_DATA_DIR",freshFolder);
+            var freshWindow=new MainWindow();var firstId=freshWindow.Engine.Workspace.Id;freshWindow.Engine.Workspace.Settings.ExitChoice=ExitChoice.Discard;freshWindow.Close();var freshStore=new WorkspaceStore(freshFolder);Equal(firstId,freshStore.Load()!.Id);
+            var off=freshStore.Load()!;off.Settings.RestoreOnLaunch=false;freshStore.Save(off);for(int restart=0;restart<2;restart++){var scratch=new MainWindow();Equal(false,scratch.Engine.Workspace.Name=="default");scratch.Engine.Workspace.Settings.ExitChoice=ExitChoice.Discard;scratch.Close();}Equal(1,freshStore.SavedWorkspaces().Count);Equal(firstId,freshStore.Load()!.Id);
+            var editedScratch=new MainWindow();editedScratch.Engine.Workspace.Settings.ShowStatusBar=true;editedScratch.AppearanceChanged(false);Equal(2,freshStore.SavedWorkspaces().Count);Equal(true,freshStore.Load()!.Settings.ShowStatusBar);editedScratch.Engine.Workspace.Settings.ExitChoice=ExitChoice.Save;editedScratch.Close();
+            string transitionFolder=Path.Combine(artifacts,"session-switch-"+Guid.NewGuid().ToString("N"));Environment.SetEnvironmentVariable("TIMERSAPP_DATA_DIR",transitionFolder);var switchWindow=new MainWindow();var target=new Workspace{Name="Another workspace"};
+            var transition=typeof(MainWindow).GetMethod("Transition",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!;Equal(true,(bool)transition.Invoke(switchWindow,new object[]{target,false})!);switchWindow.Engine.Add("Discard this edit");switchWindow.Engine.Workspace.Settings.ExitChoice=ExitChoice.Discard;switchWindow.Close();var switched=new WorkspaceStore(transitionFolder).Load()!;Equal(target.Id,switched.Id);Equal(0,switched.Timers.Count);
+            Environment.SetEnvironmentVariable("TIMERSAPP_DATA_DIR",folder);
             var window = new MainWindow(); window.RefreshWorkspaceView();
+            var preservingTimer=window.Engine.Add("Preservation check");window.Engine.Start(preservingTimer);typeof(MainWindow).GetMethod("PreserveBeforeRestore",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!.Invoke(window,null);var preserved=new WorkspaceStore(folder).Load("before-restore")!;Equal(false,preserved.Timers.Last().IsRunning);Equal(false,preserved.Timers.Last().Segments[0].Recovered);window.Engine.Stop(preservingTimer);window.Engine.Workspace.Timers.Remove(preservingTimer);
             var accessibleTimer = window.Engine.Workspace.Timers[0];
             var accessibleCard = new TimerCard(window, accessibleTimer, popout: true) { Width = 180, Height = 100 };
             var popoutHost = new System.Windows.Window { Content = accessibleCard };
@@ -160,12 +170,24 @@ Test("Render workspace with three independent timer cards", () =>
             Equal(true, peer.GetName().Contains("Accessible renamed timer"));
             window.Engine.Rename(accessibleTimer, "Design exploration", "Sketching the next idea");
             popoutHost.Content = null;
+            var wideCard=new TimerCard(window,accessibleTimer,popout:true){Width=720,Height=160};
+            wideCard.Measure(new System.Windows.Size(720,160));wideCard.Arrange(new System.Windows.Rect(0,0,720,160));wideCard.Refresh();wideCard.UpdateLayout();
+            var wideContent=(System.Windows.Controls.Grid)((System.Windows.Controls.Grid)wideCard.Child).Children[1];Equal(2,wideContent.ColumnDefinitions.Count);
+            var wideButtons=((System.Windows.Controls.StackPanel)wideContent.Children[2]).Children.OfType<System.Windows.Controls.WrapPanel>().First();Equal(System.Windows.Visibility.Visible,wideButtons.Visibility);
+            window.Engine.Workspace.Settings.PopoutScale=.75;window.Engine.Workspace.Settings.TimerScale=1.5;wideCard.Refresh();Equal(.75,((System.Windows.Media.ScaleTransform)wideContent.LayoutTransform).ScaleX);
+            window.Engine.Workspace.Settings.LinkPopoutScale=true;wideCard.Refresh();Equal(1.5,((System.Windows.Media.ScaleTransform)wideContent.LayoutTransform).ScaleX);
+            window.Engine.Workspace.Settings.LinkPopoutScale=false;window.Engine.Workspace.Settings.TimerScale=1;window.Engine.Workspace.Settings.PopoutScale=1;
+            var compactCard=new TimerCard(window,accessibleTimer,popout:true){Width=220,Height=90};compactCard.SetPreview(TimerStyle.Minimal());compactCard.Measure(new System.Windows.Size(220,90));compactCard.Arrange(new System.Windows.Rect(0,0,220,90));compactCard.Refresh();compactCard.UpdateLayout();
+            var compactContent=(System.Windows.Controls.Grid)((System.Windows.Controls.Grid)compactCard.Child).Children[1];Equal(System.Windows.Visibility.Collapsed,((System.Windows.Controls.StackPanel)compactContent.Children[0]).Children[0].Visibility);
+            var scaleControl=new ScaleInput{Value=1.1};int scaleEvents=0;scaleControl.ValueChanged+=(_,_)=>scaleEvents++;var plus=scaleControl.Children.OfType<System.Windows.Controls.Button>().Last();plus.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));Equal(1.25,scaleControl.Value);Equal(1,scaleEvents);
             var mainCard = new TimerCard(window, accessibleTimer);
             Equal(true, mainCard.ContextMenu.Items.OfType<System.Windows.Controls.MenuItem>().Any(item => Equals(item.Header, "Return to workspace")));
             var readout = new TimeReadout(); readout.Update("12:34:56", new TimerStyle { Digits = DigitStyle.SevenSegment });
             var digitPeer = System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(readout)!;
             Equal("12:34:56", digitPeer.GetName());
             readout.Update("12:34:57", new TimerStyle()); Equal("12:34:57", digitPeer.GetName());
+            readout.Measure(new System.Windows.Size(double.PositiveInfinity,double.PositiveInfinity));readout.Arrange(new System.Windows.Rect(new System.Windows.Point(),readout.DesiredSize));Equal(true,readout.IsMeasureValid);readout.Update("12:34:58",new TimerStyle());Equal(true,readout.IsMeasureValid);
+            var cachedClip=compactCard.Clip;compactCard.Refresh();Equal(true,ReferenceEquals(cachedClip,compactCard.Clip));
             var form = new FormDialog(null, "Accessible fields"); form.Label("Timer description"); var field = form.Text("");
             Equal("Timer description", ((System.Windows.Controls.TextBlock)System.Windows.Automation.AutomationProperties.GetLabeledBy(field)).Text);
             var content = (System.Windows.FrameworkElement)window.Content;
@@ -191,6 +213,9 @@ Test("Render workspace with three independent timer cards", () =>
             var galleryPng = new System.Windows.Media.Imaging.PngBitmapEncoder(); galleryPng.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(galleryImage));
             string imagePath = Path.Combine(artifacts, "appearance-preview.png"); using (var imageFile = File.Create(imagePath)) galleryPng.Save(imageFile);
             var assets = new AssetLibrary(folder); string managed = assets.Import(imagePath, true);
+            var editor=StyleEditor.Create(window,accessibleTimer,new TimerStyle(),"Style editor render");
+            var editorContent=(System.Windows.FrameworkElement)editor.Dialog.Content;editorContent.Margin=new System.Windows.Thickness();editorContent.Width=1150;editorContent.Height=690;editorContent.Measure(new System.Windows.Size(1150,690));editorContent.Arrange(new System.Windows.Rect(0,0,1150,690));editorContent.UpdateLayout();
+            var editorBitmap=new System.Windows.Media.Imaging.RenderTargetBitmap(1150,690,96,96,System.Windows.Media.PixelFormats.Pbgra32);editorBitmap.Render(editorContent);var editorPng=new System.Windows.Media.Imaging.PngBitmapEncoder();editorPng.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(editorBitmap));using(var editorFile=File.Create(Path.Combine(artifacts,"style-editor-preview.png")))editorPng.Save(editorFile);
             var exportPreset = new StylePreset { Name = "With image", Style = new TimerStyle { Background = new() { ImagePath = managed, CropX = .1, CropWidth = .8, Fit = ImageFit.Fill, AnchorX = .25 } } };
             string presetPath = Path.Combine(artifacts, "portable.t4style"); assets.ExportPreset(presetPath, exportPreset);
             var imported = assets.ImportPreset(presetPath); Equal("With image", imported.Name); Equal(true, File.Exists(imported.Style.Background.ImagePath)); Equal(.1, imported.Style.Background.CropX); Equal(false, imported.Id == exportPreset.Id);

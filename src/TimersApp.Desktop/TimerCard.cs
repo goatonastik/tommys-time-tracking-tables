@@ -28,9 +28,13 @@ internal sealed class TimerCard : Border
     private readonly WrapPanel alertControls = new() { Margin = new Thickness(0, 4, 0, 4) };
     private readonly Grid content = new();
     private readonly ImageBackdrop backdrop = new() { IsHitTestVisible = false };
-    private readonly Thumb resize = new() { Width = 15, Height = 15, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Cursor = Cursors.SizeNWSE, Opacity = .4, ToolTip = "Drag to resize this timer" };
+    private readonly Thumb resize = new() { Width = 32, Height = 32, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Cursor = Cursors.SizeNWSE, Opacity = .4, ToolTip = "Drag to resize this timer" };
     private TimerStyle? previewStyle;
     private readonly MenuItem returnToWorkspace = new() { Header = "Return to workspace" };
+    private Rect lastClip;
+    private double lastRadius=-1;
+    private bool? wideLayout;
+    private readonly ScaleTransform popoutTransform=new();
     public TimerCard(MainWindow host, TimerRecord timer, bool popout = false, bool preview = false)
     {
         this.host = host; this.timer = timer; this.popout = popout; this.preview = preview;
@@ -52,6 +56,7 @@ internal sealed class TimerCard : Border
         Add(alertControls, "Snooze", "Silence temporarily using this timer’s snooze interval", () => host.SnoozeAlert(timer));
         footer.Children.Add(alertControls);
         start.Click += (_, _) => host.Toggle(timer); buttons.Children.Add(start);
+        start.Padding=new Thickness(12,4,12,4);
         Add(buttons, "◷", "Segment history", () => host.History(timer));
         Add(buttons, popout ? "↙" : "↗", popout ? "Return to workspace" : "Pop out / focus window", () => { if (popout) host.Return(timer); else host.PopOut(timer); });
         Add(buttons, "⋯", "Timer options", () => { ContextMenu.IsOpen = true; });
@@ -111,15 +116,21 @@ internal sealed class TimerCard : Border
         base.OnKeyDown(e);
     }
     public void SetPreview(TimerStyle style) { previewStyle = style; Refresh(); }
-    private static void Add(Panel panel, string text, string tip, Action action) { var b = new Button { Content = text, ToolTip = tip, Padding = new Thickness(9, 7, 9, 7) }; AutomationProperties.SetName(b, tip); b.Click += (_, _) => action(); panel.Children.Add(b); }
+    private static void Add(Panel panel, string text, string tip, Action action) { var b = new Button { Content = text, ToolTip = tip, Padding = new Thickness(9, 4, 9, 4) }; AutomationProperties.SetName(b, tip); b.Click += (_, _) => action(); panel.Children.Add(b); }
     private static void Item(ContextMenu menu, string text, Action action) { var item = new MenuItem { Header = text }; item.Click += (_, _) => action(); menu.Items.Add(item); }
     private static Visibility Visible(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
     public void Refresh()
     {
         var style = previewStyle ?? Appearance.Resolve(host.Engine.Workspace, timer, popout);
         var text = Visuals.Brush(style.TextColor); var accent = Visuals.Brush(style.AccentColor);
-        content.Margin = new Thickness(style.Padding); CornerRadius = new CornerRadius(style.CornerRadius);
-        if (ActualWidth > 0 && ActualHeight > 0) Clip = new RectangleGeometry(new Rect(0, 0, ActualWidth, ActualHeight), style.CornerRadius, style.CornerRadius);
+        double scale=popout&&!preview?(host.Engine.Workspace.Settings.LinkPopoutScale?host.Engine.Workspace.Settings.TimerScale:host.Engine.Workspace.Settings.PopoutScale):1;
+        if(popout){if(content.LayoutTransform!=popoutTransform)content.LayoutTransform=popoutTransform;popoutTransform.ScaleX=popoutTransform.ScaleY=scale;}
+        double availableHeight=(ActualHeight>0?ActualHeight:double.IsFinite(Height)?Height:250)/scale;
+        double availableWidth=(ActualWidth>0?ActualWidth:double.IsFinite(Width)?Width:330)/scale;
+        double padding=popout&&availableHeight<170?Math.Min(style.Padding,Math.Max(2,availableHeight*.045)):style.Padding;
+        content.Margin = new Thickness(padding); CornerRadius = new CornerRadius(style.CornerRadius);
+        var bounds=new Rect(0,0,Math.Max(0,ActualWidth),Math.Max(0,ActualHeight));
+        if(bounds!=lastClip||lastRadius!=style.CornerRadius){Clip=new RectangleGeometry(bounds,style.CornerRadius,style.CornerRadius);lastClip=bounds;lastRadius=style.CornerRadius;}
         backdrop.Update(style.Background);
         title.Text = timer.Name; title.ToolTip = timer.Name; title.Foreground = text;
         returnToWorkspace.IsEnabled = !preview && host.IsPoppedOut(timer);
@@ -128,23 +139,31 @@ internal sealed class TimerCard : Border
         var total = preview ? TimeSpan.FromSeconds(4120.375) : host.Engine.Total(timer); var settings = host.Engine.Workspace.Settings;
         bool active = !preview && timer.Alert.Enabled && timer.AlertState.Active;
         var color = active && timer.Alert.ChangeColor ? Visuals.Brush(timer.Alert.Color) : text;
-        digits.Update(Appearance.Format(settings.TotalDisplay == TotalDisplay.Rounded ? Duration.Round(total, settings.RoundMinutes) : total, style.Units), style, color);
+        digits.Update(Appearance.Format(settings.TotalDisplay == TotalDisplay.Rounded ? Duration.Round(total, settings.RoundMinutes) : total, style), style, color);
         readout.StretchDirection = style.FitDigitsToWindow ? StretchDirection.Both : StretchDirection.DownOnly;
         digits.Opacity = active && timer.Alert.Flash ? (DateTime.UtcNow.Millisecond < 500 ? 1 : .15) : 1;
-        rounded.Text = settings.TotalDisplay switch { TotalDisplay.Both => $"≈ {Appearance.Format(Duration.Round(total, settings.RoundMinutes), style.Units)} · nearest {settings.RoundMinutes} min", TotalDisplay.Rounded => $"Rounded · nearest {settings.RoundMinutes} min", _ => "Exact running total" };
+        rounded.Text = settings.TotalDisplay switch { TotalDisplay.Both => $"≈ {Appearance.Format(Duration.Round(total, settings.RoundMinutes), style)} · nearest {settings.RoundMinutes} min", TotalDisplay.Rounded => $"Rounded · nearest {settings.RoundMinutes} min", _ => "Exact running total" };
         rounded.Foreground = text; rounded.Opacity = .75;
         state.Text = (timer.IsRunning ? "● RUNNING" : "● STOPPED") + (!popout && host.IsPoppedOut(timer) ? "    ↗ POPPED OUT" : "") + (active ? "    ◉ ALERT" : "");
         state.Foreground = timer.IsRunning ? accent : text;
         start.Background = accent; start.Foreground = Brushes.Black;
         start.Content = timer.IsRunning ? "Stop" : timer.Segments.Any(x => x.RunId == timer.RunId) ? "Resume" : "Start";
-        double height = ActualHeight > 0 ? ActualHeight : Height;
-        bool compact = double.IsFinite(height) && height < 170;
-        title.Visibility = Visible(style.ShowTitle && (!compact || height > 125));
-        description.Visibility = Visible(style.ShowDescription && !compact && !string.IsNullOrWhiteSpace(timer.Description));
-        state.Visibility = Visible(style.ShowStatus && !compact);
-        rounded.Visibility = Visible(style.ShowTotal && !compact);
-        buttons.Visibility = Visible(style.ShowControls && !compact && (ActualWidth == 0 || ActualWidth > 245));
-        alertControls.Visibility = Visible(active && style.ShowControls && !compact);
+        bool wide=popout&&availableWidth>=(wideLayout==true?440:470)&&availableHeight<210&&availableHeight>=90;
+        if(wideLayout!=wide)
+        {
+            wideLayout=wide;content.ColumnDefinitions.Clear();
+            if(wide){content.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});content.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(225)});}
+            Grid.SetColumn(heading,wide?1:0);Grid.SetColumn(footer,wide?1:0);Grid.SetColumn(readout,0);Grid.SetRow(readout,wide?0:1);Grid.SetRowSpan(readout,wide?3:1);
+            heading.Margin=footer.Margin=wide?new Thickness(12,0,0,0):new Thickness();
+        }
+        bool compact=availableHeight<170&&!wide;
+        title.Visibility = Visible(style.ShowTitle && (wide?availableHeight>=95:!compact || availableHeight>125));
+        description.Visibility = Visible(style.ShowDescription && (wide?availableHeight>=150&&!active:!compact) && !string.IsNullOrWhiteSpace(timer.Description));
+        state.Visibility = Visible(style.ShowStatus && !compact && (!wide||availableHeight>=180));
+        rounded.Visibility = Visible(style.ShowTotal && !compact && (!wide||availableHeight>=125));
+        buttons.Visibility = Visible(style.ShowControls && !compact && availableWidth>245);
+        alertControls.Visibility = Visible(active && style.ShowControls && !compact && (!wide||availableHeight>=140));
+        readout.Margin=compact?new Thickness():new Thickness(0,3,0,3);
         BorderBrush = !popout && host.IsPoppedOut(timer) ? accent : Brushes.Transparent;
         BorderThickness = new Thickness(!popout && host.IsPoppedOut(timer) ? 1 : 0);
         ToolTip = $"{timer.Name}\n{timer.Description}\nExact total: {Duration.Format(total)}\nRight-click for controls, styles and history.";

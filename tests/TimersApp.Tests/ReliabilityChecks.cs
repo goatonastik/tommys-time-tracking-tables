@@ -23,6 +23,7 @@ internal static class ReliabilityChecks
         test("Locked old backup does not prevent a new complete snapshot", () =>
         {
             var store = new WorkspaceStore(Path.Combine(artifacts, "locked-backup-" + Guid.NewGuid().ToString("N")));
+            store.SaveBackupPolicy(new(){MaxBackups=20});
             store.Save(new Workspace());
             for (int i = 0; i < 20; i++) store.Backup();
             var oldest = store.Backups().Last();
@@ -41,6 +42,7 @@ internal static class ReliabilityChecks
         test("Backup rotation retains twenty readable snapshots without locked target handles", () =>
         {
             var store = new WorkspaceStore(Path.Combine(artifacts, "rotation-" + Guid.NewGuid().ToString("N")));
+            store.SaveBackupPolicy(new(){MaxBackups=20});
             var workspace = new Workspace(); workspace.Timers.Add(new TimerRecord { Name = "Retained" }); store.Save(workspace);
             for (int i = 0; i < 23; i++) store.Backup();
             Equal(20, store.Backups().Count);
@@ -86,7 +88,7 @@ internal static class ReliabilityChecks
         });
         test("Schema migration and malformed segment rejection", () =>
         {
-            var old = new Workspace { SchemaVersion = 1 }; Equal(2, WorkspaceStore.Decode(JsonSerializer.Serialize(old)).SchemaVersion);
+            var old = new Workspace { SchemaVersion = 1 }; Equal(3, WorkspaceStore.Decode(JsonSerializer.Serialize(old)).SchemaVersion);
             var bad = new Workspace(); var t = new TimerRecord(); bad.Timers.Add(t); t.Segments.Add(new Segment()); t.Segments.Add(new Segment());
             bool rejected = false; try { WorkspaceStore.Decode(JsonSerializer.Serialize(bad)); } catch (InvalidDataException) { rejected = true; } Equal(true, rejected);
         });

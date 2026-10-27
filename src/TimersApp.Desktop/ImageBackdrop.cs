@@ -22,6 +22,7 @@ internal sealed class ImageBackdrop : FrameworkElement
     private BitmapSource? bitmap;
     private string? loadedPath;
     private string crop = "";
+    private string appearanceKey="";
     public string? ImageError { get; private set; }
     public Vector AnchorDelta(double dx, double dy)
     {
@@ -34,6 +35,8 @@ internal sealed class ImageBackdrop : FrameworkElement
     }
     public void Update(BackgroundStyle value)
     {
+        string nextKey=$"{value.Color}|{value.ImagePath}|{value.Fit}|{value.AnchorX:R}|{value.AnchorY:R}|{value.Zoom:R}|{value.ImageOpacity:R}|{value.CropX:R}|{value.CropY:R}|{value.CropWidth:R}|{value.CropHeight:R}";
+        if(appearanceKey==nextKey)return;appearanceKey=nextKey;
         style = value;
         string key = $"{value.CropX:R},{value.CropY:R},{value.CropWidth:R},{value.CropHeight:R}";
         if (loadedPath != value.ImagePath || crop != key)

@@ -1,6 +1,6 @@
 <Application x:Class="TimersApp.Desktop.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <Application.Resources>
-    <ControlTemplate x:Key="TimerResizeTemplate" TargetType="Thumb"><TextBlock Text="◢" Foreground="#7286A3" FontSize="14" HorizontalAlignment="Right" VerticalAlignment="Bottom"/></ControlTemplate>
+    <ControlTemplate x:Key="TimerResizeTemplate" TargetType="Thumb"><TextBlock Text="◢" Foreground="#7286A3" FontSize="28" HorizontalAlignment="Right" VerticalAlignment="Bottom"/></ControlTemplate>
     <SolidColorBrush x:Key="WindowBackground" Color="#0E1525"/>
     <SolidColorBrush x:Key="PanelBackground" Color="#182338"/>
     <SolidColorBrush x:Key="Muted" Color="#AAB9CF"/>

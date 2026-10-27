@@ -13,6 +13,8 @@ internal sealed class TimeReadout : FrameworkElement
     private TimerStyle style = new();
     private Brush ink = Brushes.White;
     private string measureKey = "";
+    private string layoutKey="";
+    private string measurementText="00:00:00";
     protected override AutomationPeer OnCreateAutomationPeer() => new ReadoutPeer(this);
     private sealed class ReadoutPeer(TimeReadout owner) : FrameworkElementAutomationPeer(owner)
     {
@@ -22,17 +24,25 @@ internal sealed class TimeReadout : FrameworkElement
     }
     public void Update(string value, TimerStyle appearance, Brush? color = null)
     {
+        var nextInk=color??Visuals.Brush(appearance.TextColor);
         string key = $"{value}|{appearance.FontFamily}|{appearance.Digits}|{appearance.FontSize:R}";
-        bool geometryChanged = measureKey != key; measureKey = key;
-        text = value; style = appearance; ink = color ?? Visuals.Brush(appearance.TextColor);
+        if(measureKey==key&&ReferenceEquals(ink,nextInk))return;
+        string nextLayout=$"{new string(value.Select(c=>char.IsAsciiDigit(c)?'0':c).ToArray())}|{appearance.FontFamily}|{appearance.Digits}|{appearance.FontSize:R}";
+        bool geometryChanged=layoutKey!=nextLayout;layoutKey=nextLayout;measureKey=key;
+        text = value; style = appearance; ink = nextInk;
+        if(geometryChanged)
+        {
+            char widest="0123456789".MaxBy(c=>Text(c.ToString(),style.FontSize).WidthIncludingTrailingWhitespace);
+            measurementText=new string(value.Select(c=>char.IsAsciiDigit(c)?widest:c).ToArray());
+        }
         if (geometryChanged) InvalidateMeasure();
         InvalidateVisual();
     }
     private FormattedText Text(string value, double size) => new(value, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
         new Typeface(new FontFamily(style.FontFamily), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), size, ink, VisualTreeHelper.GetDpi(this).PixelsPerDip);
     protected override Size MeasureOverride(Size availableSize) => style.Digits == DigitStyle.Text
-        ? new Size(Math.Max(1, Text(text, style.FontSize).WidthIncludingTrailingWhitespace), style.FontSize * 1.4)
-        : new Size(Math.Max(1, text.Sum(Advance)) * style.FontSize / 100, style.FontSize * 1.3);
+        ? new Size(Math.Max(1, Text(measurementText, style.FontSize).WidthIncludingTrailingWhitespace), Text(measurementText,style.FontSize).Height)
+        : new Size(Math.Max(1, text.Sum(Advance)) * style.FontSize / 100, style.FontSize * 1.12);
     private static double Advance(char c) => char.IsDigit(c) ? 72 : c is ':' or '.' ? 25 : c == ' ' ? 20 : 37;
     protected override void OnRender(DrawingContext dc)
     {

@@ -91,8 +91,10 @@ public partial class MainWindow
     {
         var d = new FormDialog(owner, "Timer-name suggestions");
         d.Label("Select names to remove from suggestions. Recorded timer names are preserved.");
+        d.Label("Changes here apply immediately, including when opened from Workspace settings.");
+        var disabled=d.Check("Do not save name suggestions",!Engine.Workspace.Settings.SaveNameSuggestions);d.Label("Existing suggestions remain until removed; this stops collecting new names.");disabled.Checked+=(_,_)=>{Engine.Workspace.Settings.SaveNameSuggestions=false;Changed(false);};disabled.Unchecked+=(_,_)=>{Engine.Workspace.Settings.SaveNameSuggestions=true;Changed(false);};
         var list = new ListBox { Height = 300, SelectionMode = SelectionMode.Extended, Foreground = Brushes.Black, ItemsSource = Engine.Workspace.NameHistory.ToArray() }; d.Fields.Children.Add(list);
-        d.Actions(("Remove selected", () => { foreach (var name in list.SelectedItems.Cast<string>().ToArray()) Engine.Workspace.NameHistory.Remove(name); list.ItemsSource = Engine.Workspace.NameHistory.ToArray(); Changed(false); }), ("Close", () => d.Close())); d.ShowDialog();
+        d.Actions(("Remove selected", () => { foreach (var name in list.SelectedItems.Cast<string>().ToArray()) Engine.Workspace.NameHistory.Remove(name); list.ItemsSource = Engine.Workspace.NameHistory.ToArray(); Changed(false); }), ("Remove all",()=>{Engine.Workspace.NameHistory.Clear();list.ItemsSource=Engine.Workspace.NameHistory.ToArray();Changed(false);}), ("Close", () => d.Close())); d.ShowDialog();
     }
     public void EditAlert(TimerRecord timer)
     {
@@ -128,6 +130,7 @@ public partial class MainWindow
     {
         var s = Engine.Workspace.Settings;
         double largest = Engine.Workspace.Timers.Where(t => !t.Archived).Select(t => t.Width ?? s.CardWidth).DefaultIfEmpty(s.CardWidth).Max();
-        Cards.Columns = s.ListLayout ? 1 : s.AutoColumns && WorkspaceScroll.ActualWidth > 0 ? Math.Max(1, (int)(WorkspaceScroll.ActualWidth / (largest * s.TimerScale + s.Spacing))) : s.Columns;
+        int columns = s.ListLayout ? 1 : s.AutoColumns && WorkspaceScroll.ViewportWidth > 0 && double.IsFinite(WorkspaceScroll.ViewportWidth) ? Math.Max(1, (int)((WorkspaceScroll.ViewportWidth+s.Spacing) / (largest * s.TimerScale + s.Spacing))) : s.Columns;
+        if(Cards.Columns!=columns){Cards.Columns=columns;Relayout();}
     }
 }
