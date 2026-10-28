@@ -198,3 +198,9 @@ Keep generated artifacts and .tools out of version control. There was no existin
 
 ---
 
+# Store distribution preparation — 2026-10-28
+
+After published 0.5.1, prepared a development-identity x64 MSIX builder, Store submission plan and listing/privacy draft. The clean publish and final dev package passed MakeAppx and archive/content checks (443 entries including license and .NET runtime notices; `artifacts/store/verification.json`); NuGet advisory check found no current vulnerabilities. Store package version 1.5.1.0 maps from app 0.5.1, with a Windows 11 minimum. This unsigned rehearsal is not for distribution. The exact Store package awaits owner enrollment/verification/name reservation in Partner Center. A separate trusted signing service/certificate is required for direct GitHub EXE distribution; no paid service was created. Clean Windows 11 package installation/data/uninstall and WACK remain pending. Three read-only Claude reviews found no final blocker; confirmed low findings were addressed. See `STORE-RELEASE-PLAN.md` and CHECKPOINT.md.
+
+---
+

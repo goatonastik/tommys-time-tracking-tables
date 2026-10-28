@@ -100,3 +100,9 @@ Updated 2026-10-28. User requested thinner list rows with all existing features.
 
 ---
 
+# Current checkpoint — Store and signing preparation after 0.5.1
+
+Updated 2026-10-28. The user requested a Microsoft Store release and trusted signing for user confidence. GitHub 0.5.1 preview is complete below. Added `build-store-package.ps1`, `STORE-RELEASE-PLAN.md` and `STORE-LISTING-DRAFT.md`; a development-only, unsigned Windows 11 x64 MSIX with package version 1.5.1.0 was built from a freshly cleared self-contained publish folder. MakeAppx accepted it; `artifacts/store/verification.json` reports 443 CRC-valid entries, matching core app binaries, bundled license and .NET runtime notices, expected manifest identity/version/OS floor/assets and no PDBs. Package SHA256 681A49801B046FD7B43BA58D142DFA7703738F0F1CAE9B1A60F4763807D09365. Online NuGet advisory check found no currently reported vulnerable packages (`artifacts/store-nuget-audit.log`). The package is not Store-submittable or install-tested. The user must sign in/enroll/verify a Partner Center developer account, accept Microsoft's agreement, reserve the title and provide the exact four package identity/display values. A request is pending. Real Store MSIX signing is handled by Microsoft after certification; separate GitHub EXE signing requires a trusted certificate or billable Artifact Signing service. No certificate/account setup or payment was performed. Store data isolation/uninstall and Inno-to-Store migration require a clean Windows 11 VM test, as does WACK. No normal user app data or installation was touched. Claude read-only reviews `artifacts/claude-reviews/20261028-004929-954/review.md`, `005420-206/review.md` and `005829-388/review.md` found no final blocking issue; their confirmed low issues were addressed in the clean publish script and builder. A fourth, post-fix review attempt (`010452-671`) failed with ECONNREFUSED and produced no review.
+
+---
+
