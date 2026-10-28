@@ -1,4 +1,5 @@
-# notes3 implementation — 0.4.0 preview preparation
+# notes3 complete — 0.4.0 preview published
+Published https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.4.0-preview (release426141210), with installer/checksum. Final source remote c80d25a525a6f87a06eb16fd43ecf9947d21b9b1, local50949f052d4e588c87f48668a6bf1b312ae7a3f4. GitHub Windows workflow40610165937 succeeded. Exact final portable package launched/responded/closed with isolated data (artifacts/notes3-portable-smoke-final/result.json). Installer SHA256 B20E921D6DF61F6334DA2AE72EC7DA06B02A01490A373E82B6B9A8704A918C49 matches GitHub digest; proof artifacts/installer/github-release-0.4.0.png. All required work is complete; await user feedback.
 
 Updated 2026-10-27. Implemented all notes3 feedback and the user's additional request to remove default timer margins and minimize whitespace.
 
