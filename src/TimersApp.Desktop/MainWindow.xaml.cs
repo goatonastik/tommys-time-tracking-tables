@@ -28,6 +28,8 @@ public partial class MainWindow : Window
     private bool scratchWorkspace;
     private bool scratchHasEdits;
     private readonly AlertAudio audio;
+    private readonly Guid startupPlaybackId=Guid.NewGuid();
+    private bool startupSoundAttempted;
     private readonly DispatcherTimer scaleSaveTimer=new(){Interval=TimeSpan.FromMilliseconds(350)};
 
     public MainWindow()
@@ -47,7 +49,7 @@ public partial class MainWindow : Window
         baseline=WorkspaceStore.Copy(workspace);
         Engine = new TimerEngine(workspace);
         InitializeComponent();
-        Root.SizeChanged+=(_,_)=>UpdateZoomEscape();
+        Root.SizeChanged+=(_,_)=>{UpdateZoomEscape();FitSizePanel();};
         TimerScaleInput.ValueChanged += (_, _) => ScaleChanged(); PopoutScaleInput.ValueChanged += (_, _) => ScaleChanged();
         audio = new AlertAudio(store.Folder, message => Notify(message, true));
         scaleSaveTimer.Tick+=(_,_)=>{scaleSaveTimer.Stop();if(!exiting)Changed(false);};
@@ -61,10 +63,17 @@ public partial class MainWindow : Window
             refresh.Tick += (_, _) => Tick(); refresh.Start();
             SystemEvents.PowerModeChanged += OnPowerModeChanged;
             SystemEvents.DisplaySettingsChanged += OnDisplaysChanged;
+            PlayStartupSound();
         };
         Closing += OnClosing;
     }
     internal void RefreshWorkspaceView() { ApplySettings(); Render(); }
+    private void PlayStartupSound()
+    {
+        if(startupSoundAttempted)return;startupSoundAttempted=true;
+        try{var sound=store.LoadStartupSound();if(sound.Enabled){if(string.IsNullOrWhiteSpace(sound.Path))throw new InvalidOperationException("Choose a startup sound in Settings.");audio.PlayOnce(startupPlaybackId,sound.Path,sound.Volume,message=>Notify("Startup sound: "+message,true,"startup-sound"));}}
+        catch(Exception ex){Notify("Startup sound skipped: "+ex.Message,true,"startup-sound");}
+    }
     private void RecoverIfNeeded()
     {
         if (!Engine.Workspace.Timers.Any(t => t.IsRunning || t.ResumeAfterSleep)) return;
@@ -96,8 +105,11 @@ public partial class MainWindow : Window
         var s = Engine.Workspace.Settings;
         TimerScaleInput.Value = s.TimerScale; PopoutScaleInput.Value = s.LinkPopoutScale ? s.TimerScale : s.PopoutScale; LinkSize.IsChecked=s.LinkPopoutScale; PopoutScaleInput.IsEnabled=!s.LinkPopoutScale;
         AppTransform.ScaleX = AppTransform.ScaleY = s.AppScale;
+        FitSizePanel();
         UpdateZoomEscape();
-        var layout = new StackPanel { Orientation = Orientation.Horizontal }; layout.Children.Add(new ToolbarIcon { Kind = s.ListLayout ? "Grid" : "List" }); layout.Children.Add(new TextBlock { Text = s.ListLayout ? "Switch to grid" : "Switch to list", Margin = new Thickness(6,0,0,0) }); LayoutButton.Content = layout;
+        LayoutButton.Content=new ToolbarIcon { Kind=s.ListLayout?"Grid":"List" };
+        LayoutButton.ToolTip=s.ListLayout?"Switch to grid":"Switch to list";
+        System.Windows.Automation.AutomationProperties.SetName(LayoutButton,(string)LayoutButton.ToolTip);
         StatusBar.Visibility = s.ShowStatusBar ? Visibility.Visible : Visibility.Collapsed;
         Title = Engine.Workspace.Name + " — T⁴";
         RefreshWorkspacePicker();
@@ -246,6 +258,25 @@ public partial class MainWindow : Window
         QueueLayout();scaleSaveTimer.Stop();scaleSaveTimer.Start();
     }
     private void UpdateZoomEscape() => ResetZoom.Visibility=Engine.Workspace.Settings.AppScale>1.25?Visibility.Visible:Visibility.Collapsed;
+    private void Toolbar_SizeChanged(object sender,SizeChangedEventArgs e)=>CommandButtons.Columns=e.NewSize.Width<600?2:4;
+    private void Size_Click(object sender,RoutedEventArgs e)
+    {
+        if(SizeOverlay.Visibility==Visibility.Visible){CloseSizePanel();return;}
+        ApplySettings();SizeOverlay.Visibility=Visibility.Visible;
+        FitSizePanel();
+        TimerScaleInput.MoveFocus(new System.Windows.Input.TraversalRequest(System.Windows.Input.FocusNavigationDirection.First));
+    }
+    private void FitSizePanel()
+    {
+        if(SizeOverlay.Visibility!=Visibility.Visible)return;
+        double scale=Math.Min(Engine.Workspace.Settings.AppScale,Math.Max(.25,(Root.ActualWidth-32)/340));
+        SizePanel.LayoutTransform=new ScaleTransform(scale,scale);
+        SizePanel.MaxHeight=Math.Max(40,(Root.ActualHeight-32)/scale);
+    }
+    private void CloseSizePanel(){SizeOverlay.Visibility=Visibility.Collapsed;SizeButton.Focus();}
+    private void CloseSize_Click(object sender,RoutedEventArgs e)=>CloseSizePanel();
+    private void SizeOverlay_MouseDown(object sender,System.Windows.Input.MouseButtonEventArgs e){if(ReferenceEquals(e.OriginalSource,SizeOverlay)){CloseSizePanel();e.Handled=true;}}
+    private void SizeOverlay_KeyDown(object sender,System.Windows.Input.KeyEventArgs e){if(e.Key==System.Windows.Input.Key.Escape){TimerScaleInput.DiscardPendingEdit();PopoutScaleInput.DiscardPendingEdit();CloseSizePanel();e.Handled=true;}}
     private void ResetZoom_Click(object sender,RoutedEventArgs e){Engine.Workspace.Settings.AppScale=1;ApplySettings();Changed();}
     private void LinkSize_Changed(object sender,RoutedEventArgs e)
     {

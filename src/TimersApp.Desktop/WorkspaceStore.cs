@@ -61,7 +61,7 @@ public sealed partial class WorkspaceStore
         value.Settings.TimerScale = SafeScale(value.Settings.TimerScale);
         value.Settings.PopoutScale = SafeScale(value.Settings.PopoutScale);
         value.Settings.Columns = Math.Clamp(value.Settings.Columns, 1, 8);
-        value.Settings.CardWidth = Math.Clamp(value.Settings.CardWidth, 250, 1200); value.Settings.CardHeight = Math.Clamp(value.Settings.CardHeight, 220, 1200);
+        value.Settings.CardWidth = Math.Clamp(value.Settings.CardWidth, 250, 1200); value.Settings.CardHeight = Math.Clamp(value.Settings.CardHeight, 48, 1200);
         value.Settings.Rows = Math.Clamp(value.Settings.Rows, 0, 100); value.Settings.Spacing = Math.Clamp(value.Settings.Spacing, 0, 80); value.Settings.ListRowHeight = Math.Clamp(value.Settings.ListRowHeight, 48, 300);
         if (!Enum.IsDefined(value.Settings.ExitChoice)) value.Settings.ExitChoice = ExitChoice.Ask;
         if (!Enum.IsDefined(value.Settings.TotalDisplay)) value.Settings.TotalDisplay = TotalDisplay.Both;

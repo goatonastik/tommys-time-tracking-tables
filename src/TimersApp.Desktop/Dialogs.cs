@@ -52,4 +52,20 @@ internal sealed class FormDialog : Window
         grid.Children.Add(scroll); Grid.SetColumn(preview, 1); grid.Children.Add(preview); root.Children.Add(grid);
         Height = 730; SizeToContent = SizeToContent.Manual;
     }
+    public void TwoColumns(int split)
+    {
+        var children=Fields.Children.Cast<UIElement>().ToArray();Fields.Children.Clear();
+        var columns=new Grid();var left=new StackPanel();var right=new StackPanel();
+        columns.ColumnDefinitions.Add(new());columns.ColumnDefinitions.Add(new());
+        columns.RowDefinitions.Add(new(){Height=GridLength.Auto});columns.RowDefinitions.Add(new(){Height=GridLength.Auto});
+        for(int i=0;i<children.Length;i++)(i<split?left:right).Children.Add(children[i]);
+        columns.Children.Add(left);columns.Children.Add(right);Fields.Children.Add(columns);
+        bool? previous=null;
+        void Reflow(){bool wide=scroll.ActualWidth>=680;if(previous==wide)return;previous=wide;
+            Grid.SetColumn(right,wide?1:0);Grid.SetRow(right,wide?0:1);
+            columns.ColumnDefinitions[1].Width=wide?new GridLength(1,GridUnitType.Star):new GridLength(0);
+            left.Margin=new Thickness(0,0,wide?18:0,0);right.Margin=new Thickness(wide?6:0,0,0,0);
+        }
+        scroll.SizeChanged+=(_,_)=>Reflow();Reflow();
+    }
 }

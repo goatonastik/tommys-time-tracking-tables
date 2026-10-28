@@ -63,11 +63,11 @@ public partial class MainWindow
     private sealed record BackupChoice(string Path, string Label) { public override string ToString() => Label; }
     private void ReplaceWorkspace(Workspace workspace)
     {
-        refresh.Stop(); replacingWorkspace = true;
+        refresh.Stop(); replacingWorkspace = true;CloseSizePanel();
         scaleSaveTimer.Stop();
         try
         {
-            audio.StopAll();
+            audio.StopTimers(Engine.Workspace.Timers.Select(t=>t.Id));
             foreach (var window in popouts.Values.ToArray()) window.Close();
             Engine = new TimerEngine(workspace);
             Engine.Workspace.CleanShutdown=false;

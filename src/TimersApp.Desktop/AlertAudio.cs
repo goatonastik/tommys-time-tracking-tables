@@ -26,29 +26,37 @@ internal sealed class AlertAudio(string folder, Action<string> onError, Func<IWa
     }
     public void Play(TimerRecord timer,Action<string>? errorSink=null)
     {
+        if(!timer.Alert.PlaySound){Stop(timer.Id);return;}
+        PlayFile(timer.Id,timer.Alert.SoundPath??SoundCatalog.Resolve(timer.Alert.SystemSound),timer.Alert.Volume,
+            ()=>timer.AlertState.Active&&timer.Alert.RepeatSound,errorSink,true);
+    }
+    internal void PlayOnce(Guid id,string path,double volume,Action<string>? errorSink=null)=>PlayFile(id,path,volume,()=>false,errorSink,false);
+    internal void StopTimers(IEnumerable<Guid> ids){foreach(var id in ids.ToArray())Stop(id);}
+    private void PlayFile(Guid id,string? path,double level,Func<bool> repeat,Action<string>? errorSink,bool fallback)
+    {
         var report=errorSink??onError;
-        Stop(timer.Id); if (disposed || !timer.Alert.PlaySound) return;
+        Stop(id); if (disposed) return;
         LoopStream? source = null; IWavePlayer? output = null;
         try
         {
-            string path = timer.Alert.SoundPath ?? SoundCatalog.Resolve(timer.Alert.SystemSound) ?? BuiltInSound();
+            path??=BuiltInSound();
             WaveStream decoded;
-            try{decoded=Open(path);}catch(Exception ex)when(timer.Alert.SoundPath is not null||timer.Alert.SystemSound is not null){report("The selected sound is unavailable; using the built-in chime. "+ex.Message);decoded=Open(BuiltInSound());}
-            source = new LoopStream(decoded, () => timer.AlertState.Active && timer.Alert.RepeatSound);
-            var volume = new VolumeSampleProvider(source.ToSampleProvider()) { Volume = (float)Math.Clamp(timer.Alert.Volume, 0, 1) };
+            try{decoded=Open(path);}catch(Exception ex)when(fallback){report("The selected sound is unavailable; using the built-in chime. "+ex.Message);decoded=Open(BuiltInSound());}
+            source = new LoopStream(decoded, repeat);
+            var volume = new VolumeSampleProvider(source.ToSampleProvider()) { Volume = (float)Math.Clamp(level, 0, 1) };
             output = outputFactory?.Invoke() ?? new WaveOutEvent();
-            var playback = new Playback(output, source,report); players[timer.Id] = playback;
+            var playback = new Playback(output, source,report); players[id] = playback;
             output.PlaybackStopped += (_, e) => dispatcher.BeginInvoke(new Action(() =>
             {
-                if (!players.TryGetValue(timer.Id, out var current) || !ReferenceEquals(current, playback)) return;
-                Stop(timer.Id); if (e.Exception is not null) report("Could not play the alert sound: " + e.Exception.Message);
+                if (!players.TryGetValue(id, out var current) || !ReferenceEquals(current, playback)) return;
+                Stop(id); if (e.Exception is not null) report("Could not play sound: " + e.Exception.Message);
             }));
             output.Init(new SampleToWaveProvider16(volume)); output.Play();
         }
         catch (Exception ex)
         {
-            if(players.ContainsKey(timer.Id))Stop(timer.Id);else{output?.Dispose();source?.Dispose();}
-            report("Could not play the alert sound: " + ex.Message);
+            if(players.ContainsKey(id))Stop(id);else{output?.Dispose();source?.Dispose();}
+            report("Could not play sound: " + ex.Message);
         }
     }
     public void Stop(Guid id)

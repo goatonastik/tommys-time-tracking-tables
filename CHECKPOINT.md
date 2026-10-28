@@ -1,3 +1,15 @@
+# Current checkpoint — notes3 implemented / final package and release verification
+
+Updated 2026-10-27. All notes3 feedback and the additional zero-margin refinement are implemented. Plan: FEEDBACK3-IMPLEMENTATION-PLAN.md. Source/installer version is 0.4.0. Await final packaging, GitHub synchronization/build and release publication; do not restart implementation.
+
+- Compact measured cards, zero decorative default padding/radius, complete digit drawing, content-fitted grid height, one horizontal action row, aligned toolbar with square layout/size buttons, size overlay, responsive two-column Settings and mint checkbox/slider controls.
+- App-wide startup WAV/MP3 sound defaults off. Managed import on Apply, independent playback, no fallback, transactional preference writes, missing/corrupt preference repair, no replay on workspace switches/resume. Startup-only Apply does not create an empty scratch workspace; Escape reverts pending size text. Warnings distinguish user dismissal from replacement.
+- 59 checks pass with zero warnings/errors (artifacts/notes3-build.log), including expanded drawing-bounds/font/format/scale coverage, shown Settings paths and audio/persistence failure checks. Final installer build is running after the last small startup-warning cleanup.
+- Three Claude read-only code reviews: 20261027-172607-204, 20261027-173126-794 and 20261027-173618-887. Final narrow audit found no confirmed blocking/medium issues; its low startup-warning cleanup was applied. Plan review: 20261027-171424-679.
+- Earlier 0.4 portable build passed isolated launch/respond/clean-close smoke test in artifacts/notes3-portable-smoke. Repeat for final rebuilt package. User-installed app PID 29416 was running; leave it and normal data untouched. No installer install/uninstall smoke this pass to avoid affecting the existing installation.
+- Pending: final portable smoke, source sync without force-push, GitHub Windows workflow, upload installer/checksum and publish v0.4.0-preview, then record exact commit/hash/release proof. Remote base main b9847add62aaabb7d664a1411cabb209c3790cea; read fresh before updating. Local/remote histories differ.
+- Manual pointer, physical audio, mixed-DPI/multi-monitor and clean Windows 11 tests remain unverified. This PC runs Windows 10 22H2.
+---
 # Current checkpoint — notes2 complete / 0.3.0 preview published
 
 Updated 2026-10-27. All requested notes2 work is implemented, tested, reviewed and published. Await user testing/feedback; do not keep changing source solely for optional review suggestions.

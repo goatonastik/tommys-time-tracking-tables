@@ -148,7 +148,7 @@ public partial class MainWindow
         double largest=Cards.Children.Cast<TimerCard>().Select(c=>c.Width).DefaultIfEmpty(Math.Max(150,s.CardWidth*s.TimerScale)).Max();
         int columns=s.ListLayout?1:s.AutoColumns?Math.Max(1,(int)((WorkspaceWidth+s.Spacing)/(largest+s.Spacing))):s.Columns;
         Cards.Columns=columns;Cards.Spacing=s.Spacing;Cards.MinimumRows=s.ListLayout?0:s.Rows;
-        Cards.EmptyRowHeight=Math.Max(24,s.CardHeight*s.TimerScale);
+        Cards.EmptyRowHeight=s.FitCardHeight?Cards.Children.Cast<TimerCard>().Select(c=>c.Height).DefaultIfEmpty(Math.Max(48,100*s.TimerScale)).Max():Math.Max(24,s.CardHeight*s.TimerScale);
         Relayout();
     }
 }

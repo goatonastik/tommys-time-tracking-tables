@@ -1,3 +1,18 @@
+# notes3 implementation — 0.4.0 preview preparation
+
+Updated 2026-10-27. Implemented all notes3 feedback and the user's additional request to remove default timer margins and minimize whitespace.
+
+- Content-measured timer/readout sizing, full glyph drawing bounds, stable play-button sizes, zero decorative default padding/radius, compact horizontal action row beneath the title, and content-fitted grid height on by default. Manual height and individual sizes remain available; compact-default action removes padding/radius while preserving colors, fonts and backgrounds.
+- Aligned toolbar command rows, square grid/list and growing-clock buttons, and a responsive size overlay with timer/pop-out percentages, steps and link control. Existing pop-outs keep their geometry. Escape cancels pending entry text; outside click closes the panel.
+- Two-column Settings with 220-DIP selection fields and narrow-screen reflow; app-scale draft preview; mint checkbox indicators and slider knobs. Cancel/Reset semantics retained.
+- App-wide optional startup WAV/MP3 sound, off by default, managed import on Apply, volume/Test/Stop, one startup attempt after recovery, no chime fallback. Global preference and launch preferences commit atomically. Corrupt/missing startup settings remain repairable; global-only Apply does not create an empty scratch workspace. Single-workspace portable backups exclude this global preference.
+- Persistent warnings distinguish explicit dismissal from replacement by another message, so an overwritten save failure can reappear.
+- 59 checks pass with zero build warnings/errors in artifacts/notes3-build.log. Expanded WPF checks exercise six scales, three fonts, text/segment digits, short/long formats and totals modes, real drawing bounds, shown Settings Apply/Cancel/reflow, startup failure/repair, transactional rollback, independent audio ownership and scratch-workspace preservation. Package dependency security metadata refreshed successfully.
+- Inspected rendered timer/list, Settings wide/narrow and size-overlay screens in artifacts/tests. Self-contained 0.4.0 portable build launched/responded/closed using isolated data under artifacts/notes3-portable-smoke. The user's installed process was left running and untouched; this pass deliberately does not install/uninstall over that installation.
+- Claude read-only reviews: 20261027-172607-204 and 20261027-173126-794, with confirmed findings fixed. Final narrow audit 20261027-173618-887 found no confirmed blocking or medium defects; its concrete startup-warning cleanup was applied and tested. Shared compact/regular grid footer is intentional because both now use one horizontal action row. Applied startup preferences survive workspace Discard; workspace launch choices keep the previously agreed session semantics. Superseded managed assets are retained because saved snapshots may still reference them; asset garbage collection is outside this feedback scope.
+- Remaining manual validation: physical audible playback, full pointer interaction, mixed DPI/multi-monitor, clean Windows 11 and long-history responsiveness. Current host is Windows 10 22H2. Do not claim these checks passed.
+
+---
 # notes2 / v0.3.0 implementation — 2026-10-27
 
 Implemented notes2.txt using FEEDBACK2-IMPLEMENTATION-PLAN.md, including the user's confirmed per-timer daily export rounding. Cross-version compatibility work is excluded.

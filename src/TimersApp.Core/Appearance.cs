@@ -38,9 +38,9 @@ public sealed class TimerStyle
     public bool ShowStatus { get; set; } = true;
     public bool ShowControls { get; set; } = true;
     public bool ShowTotal { get; set; } = true;
-    public double Padding { get; set; } = 18;
-    public double CornerRadius { get; set; } = 12;
-    public static TimerStyle Minimal() => new() { ShowTitle = false, ShowDescription = false, ShowStatus = false, ShowControls = false, ShowTotal = false, Padding = 8, Digits = DigitStyle.SevenSegment };
+    public double Padding { get; set; }
+    public double CornerRadius { get; set; }
+    public static TimerStyle Minimal() => new() { ShowTitle = false, ShowDescription = false, ShowStatus = false, ShowControls = false, ShowTotal = false, Digits = DigitStyle.SevenSegment };
 }
 public sealed class StylePreset
 {

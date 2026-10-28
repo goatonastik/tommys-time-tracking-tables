@@ -3,34 +3,38 @@
 <local:ImageBackdrop x:Name="AppBackdrop" IsHitTestVisible="False"/>
 <DockPanel x:Name="Shell" Margin="16">
 <DockPanel.LayoutTransform><ScaleTransform x:Name="AppTransform"/></DockPanel.LayoutTransform>
-<ScrollViewer DockPanel.Dock="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="280" Margin="0,0,0,12">
-<StackPanel>
-<Grid>
+<ScrollViewer x:Name="ToolbarScroll" DockPanel.Dock="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Left" MaxHeight="240" Margin="0,0,0,6">
+<Grid x:Name="Toolbar" Width="{Binding ViewportWidth, ElementName=ToolbarScroll}" MaxWidth="760" HorizontalAlignment="Left" SizeChanged="Toolbar_SizeChanged">
 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+<Button MaxHeight="120" Background="{DynamicResource Accent}" Padding="12" Margin="0,0,6,0" ToolTip="Add timer" AutomationProperties.Name="Add timer" Click="Add_Click"><local:ToolbarIcon Kind="AddTimer" Width="32" Height="32"/></Button>
+<Grid Grid.Column="1">
 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-<Button Grid.RowSpan="2" MaxHeight="160" Background="#53D9B0" Padding="16" Margin="0,0,12,6" ToolTip="Add timer" AutomationProperties.Name="Add timer" Click="Add_Click"><local:ToolbarIcon Kind="AddTimer" Width="32" Height="32"/></Button>
-<WrapPanel Grid.Column="1" Margin="0,0,0,6">
-<StackPanel Margin="0,0,10,4"><TextBlock Text="Workspace style" FontSize="11" Foreground="{StaticResource Muted}" Margin="0,0,0,3"/><ComboBox x:Name="WorkspacePicker" Width="170" Height="29" Padding="5,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Foreground="Black" DisplayMemberPath="Name" SelectedValuePath="Id" ToolTip="Saved workspaces" AutomationProperties.Name="Saved workspaces" SelectionChanged="Workspace_Selected"/></StackPanel>
-<Button ToolTip="New workspace" AutomationProperties.Name="New workspace" Click="NewWorkspace_Click" Padding="9" Margin="0,10,8,4"><local:ToolbarIcon Kind="Plus"/></Button>
-<Button ToolTip="Save workspace" AutomationProperties.Name="Save workspace" Click="Save_Click" Padding="9" Margin="0,10,8,4"><local:ToolbarIcon Kind="Save"/></Button>
-<Button ToolTip="Rename workspace" AutomationProperties.Name="Rename workspace" Click="RenameWorkspace_Click" Padding="9" Margin="0,10,8,4"><local:ToolbarIcon Kind="Rename"/></Button>
-<Button ToolTip="Duplicate workspace" AutomationProperties.Name="Duplicate workspace" Click="DuplicateWorkspace_Click" Padding="9" Margin="0,10,8,4"><local:ToolbarIcon Kind="Copy"/></Button>
-<Button ToolTip="Delete workspace" AutomationProperties.Name="Delete workspace" Click="DeleteWorkspace_Click" Padding="9" Margin="0,10,8,4"><local:ToolbarIcon Kind="Delete"/></Button>
+<WrapPanel Margin="0,0,0,4">
+<StackPanel Margin="0,0,6,0"><TextBlock Text="Workspace style" FontSize="11" Foreground="{StaticResource Muted}"/><ComboBox x:Name="WorkspacePicker" Width="170" Height="30" Padding="5,0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Foreground="Black" DisplayMemberPath="Name" SelectedValuePath="Id" ToolTip="Saved workspaces" AutomationProperties.Name="Saved workspaces" SelectionChanged="Workspace_Selected"/></StackPanel>
+<Button ToolTip="New workspace" AutomationProperties.Name="New workspace" Click="NewWorkspace_Click" Padding="9" Margin="0,12,4,0"><local:ToolbarIcon Kind="Plus"/></Button>
+<Button ToolTip="Save workspace" AutomationProperties.Name="Save workspace" Click="Save_Click" Padding="9" Margin="0,12,4,0"><local:ToolbarIcon Kind="Save"/></Button>
+<Button ToolTip="Rename workspace" AutomationProperties.Name="Rename workspace" Click="RenameWorkspace_Click" Padding="9" Margin="0,12,4,0"><local:ToolbarIcon Kind="Rename"/></Button>
+<Button ToolTip="Duplicate workspace" AutomationProperties.Name="Duplicate workspace" Click="DuplicateWorkspace_Click" Padding="9" Margin="0,12,4,0"><local:ToolbarIcon Kind="Copy"/></Button>
+<Button ToolTip="Delete workspace" AutomationProperties.Name="Delete workspace" Click="DeleteWorkspace_Click" Padding="9" Margin="0,12,0,0"><local:ToolbarIcon Kind="Delete"/></Button>
 </WrapPanel>
-<WrapPanel Grid.Column="1" Grid.Row="1"><Button Content="Export" Click="Export_Click" Margin="0,0,8,6"/><Button Content="Settings" Click="Settings_Click" Margin="0,0,8,6"/><Button Content="Appearance" Click="Appearance_Click" Margin="0,0,8,6"/><Button Content="Backups" Click="Backups_Click" Margin="0,0,8,6"/></WrapPanel>
-</Grid>
-<WrapPanel Margin="0,8,0,0">
-<StackPanel Margin="0,0,8,4"><TextBlock Text="Timer size"/><local:ScaleInput x:Name="TimerScaleInput" Label="Timer size percent"/></StackPanel>
-<CheckBox x:Name="LinkSize" ToolTip="Link default pop-out size to timer size" AutomationProperties.Name="Link default pop-out size to timer size" VerticalAlignment="Center" Margin="6,12,14,0" Checked="LinkSize_Changed" Unchecked="LinkSize_Changed"><local:ToolbarIcon Kind="Link"/></CheckBox>
-<StackPanel Margin="0,0,16,4"><TextBlock Text="Default pop-out size"/><local:ScaleInput x:Name="PopoutScaleInput" Label="Default pop-out size percent"/></StackPanel>
-<Button x:Name="LayoutButton" Click="Layout_Click" Padding="8,6" VerticalAlignment="Center"/>
-</WrapPanel>
-</StackPanel></ScrollViewer>
+<Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+<UniformGrid x:Name="CommandButtons" Columns="4"><Button Content="Export" Click="Export_Click" Padding="8,9" Margin="0,0,4,0"/><Button Content="Settings" Click="Settings_Click" Padding="8,9" Margin="0,0,4,0"/><Button Content="Appearance" Click="Appearance_Click" Padding="8,9" Margin="0,0,4,0"/><Button Content="Backups" Click="Backups_Click" Padding="8,9" Margin="0,0,4,0"/></UniformGrid>
+<StackPanel Grid.Column="1" Orientation="Horizontal"><Button x:Name="LayoutButton" Click="Layout_Click" Width="40" Height="40" Padding="8" Margin="0,0,4,0" VerticalAlignment="Top"/><Button x:Name="SizeButton" Click="Size_Click" Width="40" Height="40" Padding="8" Margin="0" VerticalAlignment="Top" ToolTip="Timer and default pop-out sizes" AutomationProperties.Name="Timer and default pop-out sizes"><local:ToolbarIcon Kind="GrowClock"/></Button></StackPanel>
+</Grid></Grid></Grid></ScrollViewer>
 <Border x:Name="StatusBar" DockPanel.Dock="Bottom" Padding="0,2" Visibility="Collapsed"><TextBlock x:Name="Status" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/></Border>
 <ScrollViewer x:Name="WorkspaceScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" SizeChanged="Workspace_SizeChanged" ScrollChanged="Workspace_ScrollChanged">
 <StackPanel><TextBlock x:Name="EmptyState" Text="Your workspace is ready. Add your first timer to begin." Foreground="{StaticResource Muted}" FontSize="18" Margin="8,36" TextWrapping="Wrap"/><local:TimerGridPanel x:Name="Cards" HorizontalAlignment="Left" VerticalAlignment="Top"/></StackPanel>
 </ScrollViewer>
 </DockPanel>
+<Grid x:Name="SizeOverlay" Visibility="Collapsed" Background="#60000000" KeyboardNavigation.TabNavigation="Cycle" PreviewMouseDown="SizeOverlay_MouseDown" PreviewKeyDown="SizeOverlay_KeyDown">
+<Border x:Name="SizePanel" Background="{StaticResource PanelBackground}" BorderBrush="{DynamicResource Accent}" BorderThickness="1" Padding="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="16">
+<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"><StackPanel>
+<DockPanel><Button DockPanel.Dock="Right" Content="×" Click="CloseSize_Click" ToolTip="Close size panel" AutomationProperties.Name="Close size panel" Padding="8,2" Margin="8,0,0,0"/><TextBlock Text="Timer sizes" FontWeight="SemiBold"/></DockPanel>
+<TextBlock Text="Timer size" Margin="0,8,0,0"/><local:ScaleInput x:Name="TimerScaleInput" Label="Timer size percent"/>
+<CheckBox x:Name="LinkSize" Content="Link sizes" ToolTip="Link default pop-out size to timer size" AutomationProperties.Name="Link default pop-out size to timer size" Checked="LinkSize_Changed" Unchecked="LinkSize_Changed"/>
+<TextBlock Text="Default pop-out size"/><local:ScaleInput x:Name="PopoutScaleInput" Label="Default pop-out size percent"/>
+<TextBlock Text="Applies to new pop-outs. Existing windows keep their size." MaxWidth="290" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{StaticResource Muted}"/>
+</StackPanel></ScrollViewer></Border></Grid>
 <Button x:Name="ResetZoom" Content="Reset app size" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="16" Click="ResetZoom_Click"/>
 <Border x:Name="Toast" Visibility="Collapsed" VerticalAlignment="Top" HorizontalAlignment="Center" Background="#293B55" CornerRadius="8" Padding="16,10" Margin="12"><DockPanel><Button x:Name="ToastDismiss" DockPanel.Dock="Right" Content="×" ToolTip="Dismiss notification" AutomationProperties.Name="Dismiss notification" Padding="8,2" Margin="12,0,0,0" Click="DismissToast_Click"/><TextBlock x:Name="ToastText" AutomationProperties.LiveSetting="Assertive" Text="Saved" FontSize="16" TextWrapping="Wrap" MaxWidth="400"/></DockPanel></Border>
 </Grid></Window>

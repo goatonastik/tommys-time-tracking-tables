@@ -124,6 +124,7 @@ Test("One-shot alerts do not rearm after dismiss", () =>
 ReliabilityChecks.Run(Test, artifacts);
 FeedbackChecks.Run(Test, artifacts);
 Feedback2Checks.Run(Test, artifacts);
+Feedback3Checks.Run(Test, artifacts);
 Test("Render workspace with three independent timer cards", () =>
 {
     Exception? error = null;
@@ -171,6 +172,7 @@ Test("Render workspace with three independent timer cards", () =>
             window.Engine.Workspace.Settings.LinkPopoutScale=true;Equal(585d,TimerSizing.InitialPopout(window.Engine.Workspace.Settings).Width);
             window.Engine.Workspace.Settings.LinkPopoutScale=false;window.Engine.Workspace.Settings.TimerScale=1;window.Engine.Workspace.Settings.PopoutScale=1;
             var compactCard=new TimerCard(window,accessibleTimer,popout:true){Width=220,Height=90};compactCard.SetPreview(TimerStyle.Minimal());compactCard.Measure(new System.Windows.Size(220,90));compactCard.Arrange(new System.Windows.Rect(0,0,220,90));compactCard.Refresh();compactCard.UpdateLayout();Equal(false,compactCard.ControlsVisible);
+            Feedback3Checks.Layout(window);
             Feedback2Checks.Layout(window,artifacts);
             var scaleControl=new ScaleInput{Value=1.1};int scaleEvents=0;scaleControl.ValueChanged+=(_,_)=>scaleEvents++;var plus=scaleControl.Children.OfType<System.Windows.Controls.Button>().Last();plus.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));Equal(1.25,scaleControl.Value);Equal(1,scaleEvents);
             var mainCard = new TimerCard(window, accessibleTimer);
@@ -216,6 +218,7 @@ Test("Render workspace with three independent timer cards", () =>
             string archivePath = Path.Combine(artifacts, "portable.t4backup"); WorkspaceArchive.Export(archivePath, data);
             var portable = WorkspaceArchive.Import(archivePath, Path.Combine(folder, "restored")); Equal(3, portable.Timers.Count); Equal(true, File.Exists(portable.Timers[0].Style!.Background.ImagePath)); Equal(.1, portable.Timers[0].Style!.Background.CropX);
             var bg = new ImageBackdrop { Width = 500, Height = 250 }; bg.Update(imported.Style.Background); bg.Measure(new System.Windows.Size(500, 250)); bg.Arrange(new System.Windows.Rect(0, 0, 500, 250)); Equal<string?>(null, bg.ImageError);
+            window.Show();window.UpdateLayout();Feedback3Checks.Settings(window,artifacts);
             Feedback2Checks.LiveWindows(window);
         }
         catch (Exception ex) { error = ex; }

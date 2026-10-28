@@ -38,6 +38,7 @@ public sealed class AppSettings
     public double ListRowHeight { get; set; } = 72;
     public double CardWidth { get; set; } = 330;
     public double CardHeight { get; set; } = 250;
+    public bool FitCardHeight { get; set; } = true;
     public int RoundMinutes { get; set; } = 15;
     public TotalDisplay TotalDisplay { get; set; } = TotalDisplay.Both;
     public TimerStyle DefaultStyle { get; set; } = new();

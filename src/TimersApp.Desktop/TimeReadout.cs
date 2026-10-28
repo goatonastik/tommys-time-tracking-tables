@@ -16,6 +16,7 @@ internal sealed class TimeReadout : FrameworkElement
     private string layoutKey="";
     private string measurementText="00:00:00";
     private Pen? segmentPen;
+    private Rect textBounds;
     private static readonly (Point A,Point B)[] Segments=[(new(14,8),new(54,8)),(new(60,15),new(60,49)),(new(60,63),new(60,97)),(new(14,105),new(54,105)),(new(8,63),new(8,97)),(new(8,15),new(8,49)),(new(14,56),new(54,56))];
     private static readonly int[] Masks=[0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x6F];
     protected override AutomationPeer OnCreateAutomationPeer() => new ReadoutPeer(this);
@@ -44,13 +45,21 @@ internal sealed class TimeReadout : FrameworkElement
     }
     private FormattedText Text(string value, double size) => new(value, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
         new Typeface(new FontFamily(style.FontFamily), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), size, ink, VisualTreeHelper.GetDpi(this).PixelsPerDip);
-    protected override Size MeasureOverride(Size availableSize) => style.Digits == DigitStyle.Text
-        ? new Size(Math.Max(1, Text(measurementText, style.FontSize).WidthIncludingTrailingWhitespace), Text(measurementText,style.FontSize).Height)
-        : new Size(Math.Max(1, text.Sum(Advance)) * style.FontSize / 100, style.FontSize * 1.12);
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if(style.Digits!=DigitStyle.Text)return new Size(Math.Max(1,text.Sum(Advance))*style.FontSize/100,style.FontSize*1.12);
+        var formatted=Text(measurementText,style.FontSize);
+        static Rect DrawingBounds(FormattedText text){var drawing=new DrawingGroup();using(var dc=drawing.Open())dc.DrawText(text,new Point());return drawing.Bounds;}
+        var ink=DrawingBounds(formatted);
+        var digitsBounds=DrawingBounds(Text("0123456789",style.FontSize));
+        double left=Math.Min(0,ink.Left),top=Math.Min(ink.Top,digitsBounds.Top);
+        textBounds=new Rect(left,top,Math.Max(1,Math.Max(formatted.WidthIncludingTrailingWhitespace,ink.Right)-left),Math.Max(1,Math.Max(ink.Bottom,digitsBounds.Bottom)-top));
+        return textBounds.Size;
+    }
     private static double Advance(char c) => char.IsDigit(c) ? 72 : c is ':' or '.' ? 25 : c == ' ' ? 20 : 37;
     protected override void OnRender(DrawingContext dc)
     {
-        if (style.Digits == DigitStyle.Text) { dc.DrawText(Text(text, style.FontSize), new Point()); return; }
+        if (style.Digits == DigitStyle.Text) { dc.DrawText(Text(text, style.FontSize), new Point(-textBounds.X,-textBounds.Y)); return; }
         dc.PushTransform(new ScaleTransform(style.FontSize / 100, style.FontSize / 100));
         double x = 0;
         foreach (char c in text)

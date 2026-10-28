@@ -9,11 +9,14 @@ public partial class MainWindow
     private bool selectingWorkspace;
     private readonly DispatcherTimer toastTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly Dictionary<string,string> noticeConditions=[];
+    private readonly HashSet<string> dismissedNotices=[];
     private string? toastCondition;
-    internal void ClearNotice(string condition){noticeConditions.Remove(condition);if(toastCondition==condition)HideToast(null,EventArgs.Empty);}
+    internal void ClearNotice(string condition){noticeConditions.Remove(condition);dismissedNotices.Remove(condition);if(toastCondition==condition)HideToast(null,EventArgs.Empty);}
     internal void Notify(string text, bool persistent = false,string? condition=null,bool force=false)
     {
-        if(condition is not null){if(!force&&noticeConditions.TryGetValue(condition,out var previous)&&previous==text)return;noticeConditions[condition]=text;}
+        if(condition is not null){bool same=noticeConditions.TryGetValue(condition,out var previous)&&previous==text;
+            if(!force&&same&&(dismissedNotices.Contains(condition)||(toastCondition==condition&&Toast.Visibility==Visibility.Visible)))return;
+            if(force||!same)dismissedNotices.Remove(condition);noticeConditions[condition]=text;}
         toastCondition=condition;
         ToastText.Text=text; Toast.Visibility=Visibility.Visible; toastTimer.Stop();
         var peer=System.Windows.Automation.Peers.UIElementAutomationPeer.FromElement(ToastText)??System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(ToastText);peer?.RaiseAutomationEvent(System.Windows.Automation.Peers.AutomationEvents.LiveRegionChanged);
@@ -22,8 +25,9 @@ public partial class MainWindow
         if(!persistent)toastTimer.Start();
     }
     private void HideToast(object? sender, EventArgs e){toastTimer.Stop();Toast.Visibility=Visibility.Collapsed;}
-    private void DismissToast(object sender,System.Windows.Input.MouseButtonEventArgs e)=>HideToast(null,EventArgs.Empty);
-    private void DismissToast_Click(object sender,RoutedEventArgs e)=>HideToast(null,EventArgs.Empty);
+    private void DismissCurrentNotice(){if(toastCondition is not null)dismissedNotices.Add(toastCondition);HideToast(null,EventArgs.Empty);}
+    private void DismissToast(object sender,System.Windows.Input.MouseButtonEventArgs e)=>DismissCurrentNotice();
+    private void DismissToast_Click(object sender,RoutedEventArgs e)=>DismissCurrentNotice();
     private void RefreshWorkspacePicker()
     {
         selectingWorkspace=true;
@@ -89,24 +93,5 @@ public partial class MainWindow
     {
         if(MessageBox.Show(this,$"Delete '{Engine.Workspace.Name}'? A recoverable copy will remain in Backups.","Delete workspace",MessageBoxButton.OKCancel)!=MessageBoxResult.OK)return;
         try{Engine.Checkpoint();var next=store.SavedWorkspaces().FirstOrDefault(x=>x.Id!=Engine.Workspace.Id);Transition(next is null?new Workspace():store.LoadWorkspace(next.Id),true);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Delete failed");}
-    }
-    private void Settings_Click(object sender,RoutedEventArgs e)
-    {
-        var original=Engine.Workspace.Settings;var s=Appearance.Copy(original);var d=new FormDialog(this,"Workspace settings",560);
-        var autosave=d.Check("Automatically save timers and settings",s.AutoSave);var restore=d.Check("Restore saved workspace on launch",s.RestoreOnLaunch);var sleep=d.Check("Pause timers while the PC sleeps",s.PauseDuringSleep);var status=d.Check("Show status bar",s.ShowStatusBar);var resize=d.Check("Allow individual timer resizing",s.AllowIndividualResize);
-        d.Label("Application scale");var appScale=new ScaleInput{Value=s.AppScale,Label="Application scale percent"};d.Fields.Children.Add(appScale);appScale.ValueChanged+=(_,_)=>{AppTransform.ScaleX=AppTransform.ScaleY=appScale.Value;};var resetApp=new Button{Content="Reset application scale to 100%"};resetApp.Click+=(_,_)=>{appScale.Value=1;AppTransform.ScaleX=AppTransform.ScaleY=1;};d.Fields.Children.Add(resetApp);d.Closed+=(_,_)=>{AppTransform.ScaleX=AppTransform.ScaleY=Engine.Workspace.Settings.AppScale;};
-        d.Label("Exit decision");var exit=d.Select(Enum.GetValues<ExitChoice>(),s.ExitChoice);d.Label("Round to nearest (minutes)");var round=d.Select(new[]{1,15,60},s.RoundMinutes);d.Label("Total display");var display=d.Select(Enum.GetValues<TotalDisplay>(),s.TotalDisplay);
-        d.Label("Grid columns");var columns=d.Select(Enumerable.Range(1,8),s.Columns);var automatic=d.Check("Automatically fit columns",s.AutoColumns);d.Label("Minimum grid rows (0 = automatic)");var rows=d.Text(s.Rows.ToString());
-        NumberSlider Slider(string label,double min,double max,double value){var control=new NumberSlider(label,min,max,value);d.Fields.Children.Add(control);return control;}
-        var gap=Slider("Space between timers",0,80,s.Spacing);var width=Slider("Card width",250,1200,s.CardWidth);var height=Slider("Default card height",220,1200,s.CardHeight);var list=Slider("List row height",48,300,s.ListRowHeight);
-        var resetSizes=d.Check("Forget saved individual timer sizes",false);
-        var names=new Button{Content="Timer name suggestions",Margin=new Thickness(0,12,0,0)};names.Click+=(_,_)=>ManageNames(d);d.Fields.Children.Add(names);
-        d.Actions(("Reset to defaults",()=>{var defaults=new AppSettings();autosave.IsChecked=defaults.AutoSave;restore.IsChecked=defaults.RestoreOnLaunch;sleep.IsChecked=defaults.PauseDuringSleep;status.IsChecked=false;exit.SelectedItem=defaults.ExitChoice;round.SelectedItem=defaults.RoundMinutes;display.SelectedItem=defaults.TotalDisplay;columns.SelectedItem=defaults.Columns;automatic.IsChecked=true;rows.Text="0";gap.Value=defaults.Spacing;width.Value=defaults.CardWidth;height.Value=defaults.CardHeight;list.Value=defaults.ListRowHeight;appScale.Value=1;AppTransform.ScaleX=AppTransform.ScaleY=1;resize.IsChecked=false;}),("Apply",()=>{
-            if(!int.TryParse(rows.Text,out int n)||n<0||n>100){MessageBox.Show(d,"Use 0–100 rows.");return;}
-            s.AutoSave=autosave.IsChecked==true;s.RestoreOnLaunch=restore.IsChecked==true;s.PauseDuringSleep=sleep.IsChecked==true;s.ShowStatusBar=status.IsChecked==true;s.ExitChoice=(ExitChoice)exit.SelectedItem;s.RoundMinutes=(int)round.SelectedItem;s.TotalDisplay=(TotalDisplay)display.SelectedItem;s.Columns=(int)columns.SelectedItem;s.AutoColumns=automatic.IsChecked==true;s.Rows=n;s.Spacing=gap.Value;s.CardWidth=width.Value;s.CardHeight=height.Value;s.ListRowHeight=list.Value;s.AppScale=appScale.Value;s.AllowIndividualResize=resize.IsChecked==true;
-            s.SaveNameSuggestions=Engine.Workspace.Settings.SaveNameSuggestions;
-            Engine.Workspace.Settings=s;try{Preferences();}catch(Exception ex){Engine.Workspace.Settings=original;MessageBox.Show(d,ex.Message);return;}
-            if(resetSizes.IsChecked==true)foreach(var timer in Engine.Workspace.Timers){timer.Width=null;timer.Height=null;}d.DialogResult=true;
-        }),("Cancel",()=>d.Close()));if(d.ShowDialog()==true){ApplySettings();Changed();}
     }
 }

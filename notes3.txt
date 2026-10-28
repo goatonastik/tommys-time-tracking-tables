@@ -1,0 +1,13 @@
+in list view, at scales of 100% and below the timer is cutoff at the bottm
+
+in grid view, it starts at around 50% where it cuts off the bottom. I feel like the buttons could be in a better layout than a column at that size, as well, as horizontally would work better, with title above them.
+
+in the settings, I feel like the fields for "exit decision / round to nearest minutes / total display/ grid columns" as well as "minimum grid rows" are too wide, they can be cut in half, and to compensate, you can split the settings into two columns so it more of a "squarish" window and uses space more effectively.
+
+to add some color, lets make the checkboxes as the same color as the "add clock" icon. lets also make the slider knobs the same color.
+
+at 100% and above size in grid view, theres a lot of unused space above the timer time, and below it (between the timer time and the other elemnts) i feel like we could squeeze more timers in at once if we reduce that. keep in mind the fix you had to do to stop the time from clipping. make sure that isn't an issue here either. time should always be 100% visible
+
+I'd also like the option for a custom "startup sound", disabled by default
+
+id like "timer size" and "default pop out size" to now be accessed from a button at the right of the other buttons at the top, perhaps a square button with an icon of a clock "growing" by showing a larger clock "ghosted" behind it and an arrod indicating growth. switch to grid can also be made square to match. try to make everything look more "flush" when they're all at the top,  perhaps increasing the size of the "export" "settings" appearance" and "backups" buttons so they match the width of the workspace style section above them.

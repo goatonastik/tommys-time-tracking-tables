@@ -64,3 +64,11 @@ Model preference: Astra Medium for architecture and difficult correctness review
 - Workspace settings use layout sliders and draft-only Reset to defaults. Name-suggestion manager supports Remove all and stops collecting when Do not save name suggestions is selected; old suggestions remain until removed.
 - Database-wide automatic backups default to 32, may be disabled independently of timer autosave, and may be deleted explicitly. Portable exports and recovery copies remain separate. Migration preserves a consistent database copy before assigning persistent workspace identity.
 - Explicit preset save/delete and suggestion-management actions apply immediately, with explanatory text; cancelling a surrounding editor discards its draft only. Session Discard continues to restore entry-time settings and history, as originally agreed. Remembered exit decisions retain their existing semantics.
+
+## Feedback revision: notes3.txt (0.4.0 preview)
+
+- Fully visible timer drawing at small scales: measure actual glyph bounds, play control and composed rows. Default timer/pop-out styles have zero decorative padding and radius. Custom padding remains selectable; rounded clips require only geometrically necessary clearance.
+- Content-fitted grid height defaults on; manual workspace height and explicit per-timer sizes remain selectable. Compact footer places title above a horizontal action row. Exact time remains readable, with context menu access at all sizes.
+- Responsive two-column Settings, shorter selection fields and mint checkbox/slider accents. Settings changes remain a draft until Apply; application scale previews revert on Cancel.
+- Top command rows share widths; square grid/list and growing-clock buttons. Size overlay contains timer/pop-out sliders and linking; live debounced updates preserve open pop-out geometry. Escape/outside click closes the panel.
+- App-wide optional custom WAV/MP3 startup sound defaults disabled. One playback after launch/recovery, no replay on workspace switch or resume, separate from timer alerts. Preview, volume, managed import on Apply, missing-sound notification without fallback. Global startup preference and launch preferences commit atomically; workspace Discard does not undo an applied global preference. Portable workspace archives exclude it.

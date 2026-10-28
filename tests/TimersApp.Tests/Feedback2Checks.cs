@@ -115,9 +115,9 @@ internal static class Feedback2Checks
         detached.Width=300;detached.UpdateLayout();((TimerCard)detached.Content).Refresh();detached.UpdateLayout();Equal(true,detached.ActualWidth<620);Equal(false,((TimerCard)detached.Content).HorizontalPresentation);Equal(true,detached.ActualHeight+.01>=detached.MinHeight);
         host.Return(timer);timer.PopoutStyle=TimerStyle.Minimal();timer.Popout.Width=500;timer.Popout.Height=320;host.PopOut(timer,true);detached=Application.Current.Windows.Cast<Window>().Single(w=>w!=host&&w.IsVisible&&w.Content is TimerCard);detached.UpdateLayout();Equal(500d,detached.ActualWidth);host.Return(timer);
         s.PopoutScale=1;s.LinkPopoutScale=false;host.PopOut(timer);detached=Application.Current.Windows.Cast<Window>().Single(w=>w!=host&&w.IsVisible&&w.Content is TimerCard);detached.UpdateLayout();Equal(390d,detached.ActualWidth);host.Return(timer);
-        s.Rows=3;s.TimerScale=1;host.RefreshWorkspaceView();var panel=(TimerGridPanel)host.FindName("Cards");var first=panel.Children[0];var scale=(ScaleInput)host.FindName("TimerScaleInput");scale.Children.OfType<Button>().Last().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(()=>{},System.Windows.Threading.DispatcherPriority.ContextIdle);Equal(true,ReferenceEquals(first,panel.Children[0]));Equal(312.5,panel.EmptyRowHeight);host.Close();
+        s.Rows=3;s.TimerScale=1;host.RefreshWorkspaceView();var panel=(TimerGridPanel)host.FindName("Cards");var first=panel.Children[0];var scale=(ScaleInput)host.FindName("TimerScaleInput");scale.Children.OfType<Button>().Last().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(()=>{},System.Windows.Threading.DispatcherPriority.ContextIdle);Equal(true,ReferenceEquals(first,panel.Children[0]));Equal(panel.Children.Cast<TimerCard>().Max(c=>c.Height),panel.EmptyRowHeight);host.Close();
     }
-    private sealed class FakeOutput:IWavePlayer
+    internal sealed class FakeOutput:IWavePlayer
     {
         public IWaveProvider? Provider;public bool Disposed;public volatile PlaybackState State;
         public bool ReadInBackground,FailStop,FailDispose;public Exception? ReadError;private Thread? reader;
