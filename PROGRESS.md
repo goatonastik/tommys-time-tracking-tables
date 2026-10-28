@@ -1,3 +1,8 @@
+# notes4 complete — 0.5.0 preview published
+
+Published 2026-10-28: https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.5.0-preview. Source8a611ce7bb552c7286bbebd4faa32c1f13fe6077; local2a5a5e9f713f639903bd97058f3c762e475ee784. Windows workflow40647168571 passed including tests/package/artifacts. Installer/checksum uploaded and both GitHub digests verified against local files; proof artifacts/installer/github-release-0.5.0.png. Exact final portable0.5.0.0 passed isolated launch/respond/exit and durable clean-shutdown checks. SHA25672B6C48F140D1F16D6DA71E2EE2173D5AE6BD69D956B3FFDD2078D997F012E95. Notes4 work is complete; await user feedback. CHECKPOINT.md contains evidence and manual-validation limitations.
+
+---
 # notes4 review follow-up resolved — 0.5.0 release preparation
 
 2026-10-27: Reproduced threshold resize memory loss, fixed pre-suppression flush and pending native drag capture with shared event ordering. 60 checks pass; tests now explicitly assert wide/tall transitions, intrinsic minimum changes, callback pumping, automatic correction exclusion and fractional-DPI-friendly window assertions. Third Claude read-only review20261027-235132-622 found no confirmed blocking/medium issues; prior review hypotheses and intentional decisions are recorded in CHECKPOINT.md. First-open memory initialization is documented in README/help.
