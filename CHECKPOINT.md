@@ -1,4 +1,9 @@
-# Current checkpoint — notes4 complete / 0.5.0 preview published
+# Current checkpoint — twelve-timer layout inspection
+
+Updated 2026-10-28. The user requested additional clipping, wrapping and whitespace tests using at least twelve timers. Added a permanent twelve-timer WPF stress render in `tests/TimersApp.Tests/LayoutStressChecks.cs`, called by `Program.cs`; screenshots and measurements are under `artifacts/tests/stress-*.png` and `stress-layout-report.json`. Eight grid/list cases at 480, 760 and 1220 px widths and timer scales 25%, 65%, 100% passed minimum-size/digit-height assertions. All 61 project checks passed; NU1900 advisory-feed warnings arose from unavailable NuGet network access. Findings and precise reproduction steps are in `LAYOUT-STRESS-REPORT.md`: list names/descriptions virtually disappear at minimum width, one long title is ellipsized despite unused description space at normal width, most descriptions truncate at medium width instead of wrapping, extended-format digits force horizontal scrolling in narrow list, and fixed grid card widths leave unused strips/row gaps. No digits clipped inside card bounds in full-panel captures; the narrow viewport crops the long readout until scrolled. This is offscreen WPF rendering on Windows 10, not live pointer/Windows 11 validation. Application source, installer and release unchanged; signing remains paused at user request. Read-only Claude review was attempted in `artifacts/claude-reviews/20261028-114848-328/` but failed ECONNREFUSED, so no Claude findings are claimed.
+
+---
+# Historical checkpoint — notes4 complete / 0.5.0 preview published
 
 Updated 2026-10-28 (America/Phoenix). Notes4 implementation, review follow-up, validation and publication are complete. Await user testing/feedback; do not continue optional review suggestions as new work.
 

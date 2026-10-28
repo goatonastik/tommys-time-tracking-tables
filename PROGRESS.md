@@ -1,3 +1,8 @@
+# Twelve-timer layout inspection — 2026-10-28
+
+Added a repeatable twelve-timer grid/list render test with eight size/scale cases. All 61 checks passed; NuGet advisory fetch emitted NU1900 because the service was unreachable. The offscreen screenshots and measured report show list metadata loss at 480 px, avoidable long-title ellipsis at 1220 px, widespread single-line description ellipsis at 760 px, narrow-list horizontal scrolling from the extended readout, and grid unused-width/unequal-row gaps. Complete reproduction steps and limits: `LAYOUT-STRESS-REPORT.md`. App production code and 0.5.1 release unchanged. Read-only Claude review attempt failed ECONNREFUSED.
+
+---
 # notes4 complete — 0.5.0 preview published
 
 Published 2026-10-28: https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.5.0-preview. Source8a611ce7bb552c7286bbebd4faa32c1f13fe6077; local2a5a5e9f713f639903bd97058f3c762e475ee784. Windows workflow40647168571 passed including tests/package/artifacts. Installer/checksum uploaded and both GitHub digests verified against local files; proof artifacts/installer/github-release-0.5.0.png. Exact final portable0.5.0.0 passed isolated launch/respond/exit and durable clean-shutdown checks. SHA25672B6C48F140D1F16D6DA71E2EE2173D5AE6BD69D956B3FFDD2078D997F012E95. Notes4 work is complete; await user feedback. CHECKPOINT.md contains evidence and manual-validation limitations.

@@ -175,6 +175,7 @@ Test("Render workspace with three independent timer cards", () =>
             var compactCard=new TimerCard(window,accessibleTimer,popout:true){Width=220,Height=90};compactCard.SetPreview(TimerStyle.Minimal());compactCard.Measure(new System.Windows.Size(220,90));compactCard.Arrange(new System.Windows.Rect(0,0,220,90));compactCard.Refresh();compactCard.UpdateLayout();Equal(false,compactCard.ControlsVisible);
             Feedback3Checks.Layout(window);
             Feedback2Checks.Layout(window,artifacts);Feedback4Checks.Layout(window,artifacts);
+            LayoutStressChecks.Run(artifacts);
             var scaleControl=new ScaleInput{Value=1.1};int scaleEvents=0;scaleControl.ValueChanged+=(_,_)=>scaleEvents++;var plus=scaleControl.Children.OfType<System.Windows.Controls.Button>().Last();plus.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));Equal(1.25,scaleControl.Value);Equal(1,scaleEvents);
             var mainCard = new TimerCard(window, accessibleTimer);
             Equal(true, mainCard.ContextMenu.Items.OfType<System.Windows.Controls.MenuItem>().Any(item => Equals(item.Header, "Return to workspace")));
