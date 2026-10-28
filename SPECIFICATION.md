@@ -79,3 +79,8 @@ Model preference: Astra Medium for architecture and difficult correctness review
 - Uniform whole-card shrinking below 65%, including controls/background and inter-card gaps. Lists show partial descriptions with ellipsis instead of hiding them.
 - Pop-out time and play/stop fit together. Click the popped-out badge or teal inward arrow to return; focus remains available in the context menu.
 - Independent per-timer/shared size/location memory reused on reopen, with normal geometry captured from user window movement and flushed before saving.
+
+
+## Compact list follow-up (0.5.1 preview)
+- List height fits measured content by default, independently of grid content-fit. Preserve font, time/totals, metadata and action buttons; expand for alerts/status as needed.
+- List gap defaults to 4 DIPs independently of grid spacing. Settings provides a content-fit toggle, manual list row height (24–300 DIPs, constrained by actual content) and separate gap control. Existing saved manual heights remain selectable by turning content fit off.

@@ -41,6 +41,8 @@ public sealed class AppSettings
     public int Rows { get; set; }
     public double Spacing { get; set; } = 14;
     public double ListRowHeight { get; set; } = 72;
+    public bool FitListRowHeight { get; set; } = true;
+    public double ListSpacing { get; set; } = 4;
     public double CardWidth { get; set; } = 330;
     public double CardHeight { get; set; } = 250;
     public bool FitCardHeight { get; set; } = true;

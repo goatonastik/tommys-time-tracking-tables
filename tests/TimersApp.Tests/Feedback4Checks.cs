@@ -20,6 +20,13 @@ internal static class Feedback4Checks
     private static void Near(double a,double b,string message,double tolerance=.2){Require(Math.Abs(a-b)<tolerance,$"{message}: {a} vs {b}");}
     internal static void Run(Action<string,Action> test,string artifacts)
     {
+        test("Compact list defaults and manual list dimensions persist independently of grid spacing",()=>
+        {
+            var w=new Workspace();Require(w.Settings.FitListRowHeight&&w.Settings.ListSpacing==4,"List defaults not compact");
+            w.Settings.FitListRowHeight=false;w.Settings.ListRowHeight=30;w.Settings.ListSpacing=2;w.Settings.Spacing=19;
+            var store=new WorkspaceStore(Path.Combine(artifacts,"compact-list-"+Guid.NewGuid().ToString("N")));store.Save(w);var saved=store.Load()!.Settings;
+            Require(!saved.FitListRowHeight&&saved.ListRowHeight==30&&saved.ListSpacing==2&&saved.Spacing==19,"Independent list settings lost");
+        });
         test("Pop-out geometry resolves independent off/shared/per-timer policies without erasing memory",()=>
         {
             var w=new Workspace();var a=new TimerRecord();var b=new TimerRecord();w.Timers.AddRange([a,b]);
@@ -58,6 +65,23 @@ internal static class Feedback4Checks
         var original=Appearance.Copy(host.Engine.Workspace.Settings);var s=host.Engine.Workspace.Settings;
         try
         {
+            s.ListLayout=true;s.TimerScale=1;s.FitListRowHeight=true;s.TotalDisplay=TotalDisplay.Both;
+            var compactTimer=new TimerRecord{Name="Design exploration",Description="Same controls and information, less empty space"};
+            var compact=new TimerCard(host,compactTimer);compact.ConfigureWorkspace(1000);Arrange(compact);
+            Require(compact.Height<=48&&compact.ControlsVisible&&compact.DescriptionVisible,"Default list row not compact with full controls");
+            double compactHeight=compact.Height;
+            foreach(string tip in new[]{"Segment history","Pop out timer","Timer options","Start timer"})
+                Require(Feedback3Checks.Descendants<Button>(compact).Single(x=>Equals(x.ToolTip,tip)).Visibility==Visibility.Visible,"Compact list removed "+tip);
+            Feedback3Checks.Render(compact,"compact-list-row.png",artifacts);
+            s.FitListRowHeight=false;s.ListRowHeight=90;compact.ConfigureWorkspace(1000);Arrange(compact);Near(90,compact.Height,"Manual list height ignored");
+            s.ListRowHeight=24;compact.ConfigureWorkspace(1000);Arrange(compact);Near(compact.MinHeight,compact.Height,"Manual list minimum did not protect visible content");
+            s.FitListRowHeight=true;compact.ConfigureWorkspace(1000);Arrange(compact);Near(compactHeight,compact.Height,"Content fit did not remove manual blank space");
+            compactTimer.Alert.Enabled=true;compactTimer.AlertState.Active=true;compact.Refresh();compact.ConfigureWorkspace(1000);Arrange(compact);
+            var dismiss=Feedback3Checks.Descendants<Button>(compact).Single(x=>Equals(x.Content,"Dismiss"));
+            Require(dismiss.Visibility==Visibility.Visible&&compact.Height>compactHeight,"Compact list clipped active alert actions");
+            var alertBounds=dismiss.TransformToAncestor(compact).TransformBounds(new Rect(0,0,dismiss.ActualWidth,dismiss.ActualHeight));
+            Require(alertBounds.Bottom<=compact.Height+.1,"Alert actions outside compact row");
+            Feedback3Checks.Render(compact,"compact-list-row-alert.png",artifacts);
             foreach(bool list in new[]{false,true})
             {
                 s.ListLayout=list;s.AllowIndividualResize=false;s.TimerScale=.65;

@@ -146,7 +146,7 @@ public partial class MainWindow
         var s=Engine.Workspace.Settings;
         var presenters=Cards.Children.OfType<TimerCardPresenter>().ToArray();
         foreach(var presenter in presenters)presenter.Configure(s,WorkspaceWidth);
-        double factor=TimerSizing.PresentationScale(s),gap=s.Spacing*factor;
+        double factor=TimerSizing.PresentationScale(s),gap=(s.ListLayout?s.ListSpacing:s.Spacing)*factor;
         double largest=presenters.Select(c=>c.Card.Width*c.Factor).DefaultIfEmpty(Math.Max(150,s.CardWidth*TimerSizing.LogicalScale(s))*factor).Max();
         int columns=s.ListLayout?1:s.AutoColumns?Math.Max(1,(int)((WorkspaceWidth+gap)/(largest+gap))):s.Columns;
         Cards.Columns=columns;Cards.Spacing=gap;Cards.MinimumRows=s.ListLayout?0:s.Rows;

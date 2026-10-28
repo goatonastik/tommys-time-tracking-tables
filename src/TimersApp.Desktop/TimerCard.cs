@@ -150,7 +150,8 @@ internal sealed class TimerCard : Border
         Refresh();var requested=TimerSizing.Requested(host.Engine.Workspace.Settings,timer);
         Width=IsList?Math.Max(MinWidth,viewport):Math.Max(MinWidth,requested.Width);
         var s=host.Engine.Workspace.Settings;
-        Height=!IsList&&s.FitCardHeight&&!(s.AllowIndividualResize&&timer.Height.HasValue)?MinHeight:Math.Max(MinHeight,requested.Height);
+        bool fit=IsList?s.FitListRowHeight:s.FitCardHeight&&!(s.AllowIndividualResize&&timer.Height.HasValue);
+        Height=fit?MinHeight:Math.Max(MinHeight,requested.Height);
     }
     private void Compose(Presentation mode)
     {
@@ -259,7 +260,8 @@ internal sealed class TimerCard : Border
         focusPopout.IsEnabled=!preview&&popped;
         BorderBrush=popped?accent:Brushes.Transparent;BorderThickness=new Thickness(popped?1:0);
         var requested=TimerSizing.Requested(settings,timer);
-        minimumClamped=settings.TimerScale>=.65&&!popout&&!preview&&(requested.Height<MinHeight||(!IsList&&requested.Width<MinWidth));
+        bool fitHeight=IsList?settings.FitListRowHeight:settings.FitCardHeight&&!(settings.AllowIndividualResize&&timer.Height.HasValue);
+        minimumClamped=settings.TimerScale>=.65&&!popout&&!preview&&((!fitHeight&&requested.Height<MinHeight)||(!IsList&&requested.Width<MinWidth));
         if(ownerWindow is {} window)
         {
             window.Title=timer.Name+" — T⁴";
