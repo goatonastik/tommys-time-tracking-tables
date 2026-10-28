@@ -1,4 +1,17 @@
-# Current checkpoint — notes3 complete / 0.4.0 preview published
+# Current checkpoint — notes4 validated / 0.5.0 release preparation
+
+Updated 2026-10-27. Resumed from local checkpoint2228db2. Implemented all six Notes4 areas, reproduced and fixed the pending suppression/resize finding. Last package is version0.5.0.0; GitHub synchronization, CI and publication are next. Preserve data/installation and both Git histories; no force-push.
+
+- Threshold regression failed before fix (900 width reopened/saved as420): artifacts/notes4-resize-regression-before.log. PopoutSession now flushes pending bounds before automatic suppression and retains native user changes during suppression, including end-of-drag ordering across shared windows. Tests assert actual wide/tall transitions and changing intrinsic minima in per-timer/shared modes, including a pumped mid-drag callback.
+- 60 checks pass. Final log artifacts/notes4-build.log. Package log artifacts/notes4-package.log. Repeated online dependency refresh removes transient NU1900 metadata-access warnings. Runtime checks use isolated data only.
+- Third Claude read-only review artifacts/claude-reviews/20261027-235132-622/review.md found no confirmed blocking/medium defects. Earlier reviews193236-735 and193922-192 are retained. Test-validity refinements were applied. Low hypotheses about fractional-DPI noise and automatic minimum growth during a location-only native drag remain manual validation items; final legal in-drag bounds are intentionally captured. Do not keep broadening implementation for optional review suggestions.
+- Candidate installer artifacts/installer/Tommys-Time-Tracking-Tables-Setup-0.5.0.exe: 49,414,200 bytes; SHA256 72B6C48F140D1F16D6DA71E2EE2173D5AE6BD69D956B3FFDD2078D997F012E95. Adjacent checksum verified. Portable folder/ZIP in artifacts/release. Exact final app launched/responded/exited and saved CleanShutdown=true: artifacts/notes4-portable-smoke-final/result.json. No test process remains.
+- No installer install/uninstall test to avoid interfering with the existing per-user installation/AppId. No full pointer/snap, mixed-DPI/multi-monitor, physical audio or clean Windows11 test. Host is Windows10 22H2. Native message tests are not physical mouse tests.
+- README/help clarify first stable opening initializes missing geometry memory. Memory applies to every reopen; default-size slider applies when memory is off/empty. Whole list row shrinks below65% intentionally; minimal styles retain hidden status/control preferences and context-menu access.
+- Pending: commit/sync source, verify GitHub Windows CI, publish v0.5.0-preview installer/checksum, verify asset digests, capture release proof and record final checkpoint. Remote main read fresh as768765d342a02e1372417d5bd46f8f10e58c1315; re-read before moving it. Previous code tree3a49b9a02831befcc2cdffeffb28f7a13c589058; only CHECKPOINT/PROGRESS differ in later remote docs commit, and both are included in this upload.
+
+---
+# Historical checkpoint — notes3 complete / 0.4.0 preview published
 
 Updated 2026-10-27. All notes3 work and the user's zero-margin refinement are implemented, tested, reviewed and published. Await user feedback; no required work remains.
 

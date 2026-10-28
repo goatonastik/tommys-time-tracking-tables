@@ -13,6 +13,7 @@ public sealed class Workspace
     public List<TimerRecord> Timers { get; set; } = [];
     public List<string> NameHistory { get; set; } = [];
     public AppSettings Settings { get; set; } = new();
+    public PopoutGeometry SharedPopoutGeometry { get; set; } = new();
     public List<StylePreset> Presets { get; set; } = StylePreset.BuiltIns();
     public DateTimeOffset SavedAt { get; set; }
     public bool CleanShutdown { get; set; }
@@ -27,6 +28,10 @@ public sealed class AppSettings
     public double TimerScale { get; set; } = 1;
     public double PopoutScale { get; set; } = 1;
     public bool LinkPopoutScale { get; set; }
+    public bool RememberPopoutSize { get; set; } = true;
+    public bool PopoutSizePerTimer { get; set; } = true;
+    public bool RememberPopoutLocation { get; set; } = true;
+    public bool PopoutLocationPerTimer { get; set; } = true;
     public bool AllowIndividualResize { get; set; }
     public bool ShowStatusBar { get; set; }
     public bool SaveNameSuggestions { get; set; } = true;

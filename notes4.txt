@@ -1,0 +1,9 @@
+I want export. I want the export settings, appearance, and backup buttons to be the same size, and I want them to be flush with the delete button on the top row, so that to the right of both rows can be the list/grid button and the timer size button, both which now take up two whole rows as squares and have name labels.
+
+I noticed the timers don't get any smaller once you start scaling below around 65% or so. Since it looks like you're trying to preserve legibility, instead of just shrinking specific elements in the window from that percentage downward, I want you to shrink the entire timer window altogether.
+
+the play/stop don't scale up correctly in the pop out window 
+
+I should be able to click the "popped out" label, or the "pop out button" (which should reverse direction and be colored theme teal), to return the popped out window. there should be an option to "save popped out window location" and "save popped out window size" with sub options for each of those settings to "save per timer"
+
+i notice if i scale up the timer size on list view, the decription disappears even though there's so much space left for it to inhabit

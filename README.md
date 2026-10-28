@@ -4,7 +4,7 @@ A Windows 11 desktop stopwatch workspace built with C#, WPF, and .NET 10.
 
 ## Run on Windows 11 (64-bit Intel/AMD)
 
-Download the installer from [GitHub Releases](https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.4.0-preview) and run **Tommys-Time-Tracking-Tables-Setup-0.4.0.exe** to install this preview for your Windows account. Local builds place it under `artifacts/installer`. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
+Download the installer from [GitHub Releases](https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.5.0-preview) and run **Tommys-Time-Tracking-Tables-Setup-0.5.0.exe** to install this preview for your Windows account. Local builds place it under `artifacts/installer`. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
 
 The installer also accepts Windows 10 22H2, the current test machine. Windows 11 remains the intended target; clean Windows 11 testing is still pending.
 
@@ -21,11 +21,11 @@ From the source workspace, **Start Tommy's Time Tracking Tables.cmd** opens the 
 - Start/stop/resume; exact running totals; rounded or combined totals.
 - Segment history with full system timestamps; reset and archive retain historical records.
 - The square growing-clock button opens Timer size and Default pop-out size sliders/percentages with optional linking. Application scale is in Settings; open pop-out windows keep their size.
-- Pop-out windows with shared timer state, main-window badge, context menus and always-on-top.
+- Pop-out windows with shared timer state, clickable return badge/inward teal arrow, proportional time/play controls, context menus and always-on-top.
 - Two-column style editor with live preview, font samples, preset actions, dimension sliders, vector seven-segment digits and custom number layouts. Use `H:M:S.MS` for `00:00:00.000`; hide-unit-labels is off by default.
-- Separate pop-out styles, size/position persistence and visibility options; hidden buttons remain available by right click.
+- Separate pop-out styles and independently remembered sizes/locations, per timer or shared within the workspace. The first opening initializes an empty memory; enabled memories then apply every reopening, even if the default slider changes. Turn size memory off to use the size slider instead. Hidden buttons remain available by right click.
 - Image backgrounds with fit/fill/original/stretch/tile, anchors, zoom/pan/crop; portable preset import/export with embedded images.
-- Compact grid cards and horizontal list rows, complete measured digits, zero decorative padding in default styles and content-fitted grid height. Manual height and individual resizing remain available in Settings; custom styles retain their padding. Use **Use compact default timer style** to update a saved workspace's default appearance without changing its custom presets.
+- Whole-card shrinking below 65%, partial list descriptions with ellipsis, compact grid cards and horizontal list rows, complete measured digits, zero decorative padding in default styles and content-fitted grid height. Manual height and individual resizing remain available in Settings; custom styles retain their padding. Use **Use compact default timer style** to update a saved workspace's default appearance without changing its custom presets.
 - Two-column Settings that reflow on narrow screens; mint checkbox indicators and slider knobs match Add timer.
 - Optional custom WAV/MP3 startup sound, disabled by default, with volume and Test/Stop. Plays once after opening/recovery, independently of timer alerts. Settings selection is copied into managed storage only on Apply. Missing startup audio is skipped with a notification.
 - Interval color/flashing/audio alerts, WAV/MP3 playback with bundled open-source decoders, local Windows sound choices, custom sounds, dismiss and snooze (alerts disabled by default). No Windows Media Player installation is needed.
@@ -49,7 +49,7 @@ Development tests use `TIMERSAPP_DATA_DIR` to isolate their files under `artifac
 
 ## Build and verification
 
-Run `./build.ps1` in PowerShell to build and run the 59-check verification suite. Run `./publish.ps1` to produce the self-contained Windows x64 folder and ZIP under `artifacts/release`. Both prefer the project-local .NET 10 SDK and otherwise use an installed .NET 10 SDK. A fresh checkout needs Windows and the .NET 10 SDK; generated files stay under ignored .tools and artifacts folders. Network access is needed when restoring missing packages.
+Run `./build.ps1` in PowerShell to build and run the 60-check verification suite. Run `./publish.ps1` to produce the self-contained Windows x64 folder and ZIP under `artifacts/release`. Both prefer the project-local .NET 10 SDK and otherwise use an installed .NET 10 SDK. A fresh checkout needs Windows and the .NET 10 SDK; generated files stay under ignored .tools and artifacts folders. Network access is needed when restoring missing packages.
 
 The suite covers independent timers, stopped/sleep gaps, duplicate starts, clock changes, reset/history preservation, name snapshots, rounding boundaries, crash recovery, date clipping, leap days, 23/25-hour daylight-saving days, active snapshots, atomic preferences, schema migration, damaged-database recovery, Excel totals/offsets, style inheritance/persistence, alerts/snooze, portable presets/backups, 50 active timers and offscreen WPF layout renders. The standalone app launches and exposes its controls through Windows accessibility. Accessible timer/readout names and dialog labels are checked offscreen; focus a timer and press Shift+F10 or the menu key to reach hidden controls. Live pointer interaction, audible playback, screen readers, mixed-DPI monitors and a clean Windows installation remain unverified.
 

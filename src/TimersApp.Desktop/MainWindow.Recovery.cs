@@ -11,7 +11,7 @@ public partial class MainWindow
     private void OnDisplaysChanged(object? sender, EventArgs e)
     {
         if (exiting || Dispatcher.HasShutdownStarted) return;
-        Dispatcher.BeginInvoke(() => { WindowPlacementService.EnsureVisible(this); foreach (var window in popouts.Values.ToArray()) WindowPlacementService.EnsureVisible(window); });
+        Dispatcher.BeginInvoke(() => { WindowPlacementService.EnsureVisible(this); foreach (var entry in popouts.ToArray()) if(popoutSessions.TryGetValue(entry.Key,out var session))session.Suppress(()=>WindowPlacementService.EnsureVisible(entry.Value)); });
     }
     private void Backups_Click(object sender, RoutedEventArgs e)
     {
@@ -54,7 +54,7 @@ public partial class MainWindow
     }
     private void PreserveBeforeRestore()
     {
-        var result = PersistenceResult.Run(() => { Engine.Checkpoint(); store.Save(WorkspaceStore.StoppedCopy(Engine.Workspace), "before-restore"); }, store.Backup);
+        var result = PersistenceResult.Run(() => { FlushPopoutGeometry();Engine.Checkpoint(); store.Save(WorkspaceStore.StoppedCopy(Engine.Workspace), "before-restore"); }, store.Backup);
         if (!result.Saved) throw new IOException("Could not preserve the current workspace: " + result.SaveError);
         lastBackup = System.Diagnostics.Stopwatch.GetTimestamp();
         backupWarning = result.BackupWarning is null ? null : "Recovery copy saved; secondary backup failed: " + result.BackupWarning;

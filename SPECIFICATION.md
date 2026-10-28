@@ -12,7 +12,7 @@ Windows 11 desktop application, C# / WPF / .NET 10. No account or server require
 
 ## Workspace and appearance
 - Grid or list; manual columns, rows/automatic rows, cell width/height, spacing, list height, overflow scrolling.
-- Main toolbar Timer size and Default pop-out size sliders/percentages, link off by default. Application scale is in Settings. Timer size changes dimensions subject to readable minimums.
+- Main toolbar Timer size and Default pop-out size sliders/percentages, link off by default. Application scale is in Settings. Timer size changes logical dimensions down to 65%; below that, the entire card and its gap scale uniformly to the requested size.
 - Individual workspace card resizing disabled by default, enabled in Settings. Pop-out windows remain independently resizable. Text and seven-segment displays; installed font selection.
 - App and timer backgrounds independently support colors/images; fit, fill/crop, original, stretch, tile; corner/center/custom anchor with numeric positioning and visual zoom/pan/crop editor.
 - Copy imported assets into application data storage.
@@ -22,7 +22,7 @@ Windows 11 desktop application, C# / WPF / .NET 10. No account or server require
 ## Pop-outs
 - Same timer state, no duplicate timing instance. Close returns timer to workspace.
 - Main entry remains with a Popped out badge, status, live total, focus and return controls.
-- Optional always on top; remember size/position and recover offscreen windows. Fresh user openings use default starting size; startup/workspace restores use saved geometry. Changing the default never resizes an open window.
+- Optional always on top; independent size/location memory enabled by default, each with a per-timer option enabled by default. Turning off per timer shares the latest value within the workspace. Saved values apply on every reopen; default size is fallback when memory is off or absent. Disabling memory retains previous values. Recover offscreen windows. Changing the default never resizes an open window.
 - Separate pop-out style disabled by default. Time-only mode; independent title/description/total/control visibility.
 - Every size supports right-click access to timer controls, history, information, presets/custom style, visibility, always-on-top and return.
 
@@ -72,3 +72,10 @@ Model preference: Astra Medium for architecture and difficult correctness review
 - Responsive two-column Settings, shorter selection fields and mint checkbox/slider accents. Settings changes remain a draft until Apply; application scale previews revert on Cancel.
 - Top command rows share widths; square grid/list and growing-clock buttons. Size overlay contains timer/pop-out sliders and linking; live debounced updates preserve open pop-out geometry. Escape/outside click closes the panel.
 - App-wide optional custom WAV/MP3 startup sound defaults disabled. One playback after launch/recovery, no replay on workspace switch or resume, separate from timer alerts. Preview, volume, managed import on Apply, missing-sound notification without fallback. Global startup preference and launch preferences commit atomically; workspace Discard does not undo an applied global preference. Portable workspace archives exclude it.
+
+## Feedback revision: notes4.txt (0.5.0 preview)
+
+- Equal Export/Settings/Appearance/Backups row aligns with Delete; labeled layout and size squares span both rows, with scrolling/reflow at narrow widths.
+- Uniform whole-card shrinking below 65%, including controls/background and inter-card gaps. Lists show partial descriptions with ellipsis instead of hiding them.
+- Pop-out time and play/stop fit together. Click the popped-out badge or teal inward arrow to return; focus remains available in the context menu.
+- Independent per-timer/shared size/location memory reused on reopen, with normal geometry captured from user window movement and flushed before saving.

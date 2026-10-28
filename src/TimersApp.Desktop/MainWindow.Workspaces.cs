@@ -42,7 +42,7 @@ public partial class MainWindow
     private Workspace? PrepareLeaving(out bool discarded)
     {
         discarded=false;
-        Engine.Checkpoint();
+        FlushPopoutGeometry();Engine.Checkpoint();
         bool running=Engine.Workspace.Timers.Any(x=>x.IsRunning);
         if(running || !Engine.Workspace.Settings.AutoSave)
         {
@@ -50,7 +50,7 @@ public partial class MainWindow
             d.Label("Discard restores this workspace to how it was when you entered it.");ExitChoice choice=ExitChoice.Ask;
             d.Actions(("Save and switch",()=>{choice=ExitChoice.Save;d.DialogResult=true;}),("Discard and switch",()=>{choice=ExitChoice.Discard;d.DialogResult=true;}),("Cancel",()=>d.Close()));if(d.ShowDialog()!=true)return null;
             discarded=choice==ExitChoice.Discard;
-            Engine.Checkpoint();return WorkspaceStore.StoppedCopy(discarded?ExitWorkspace.Prepare(Engine.Workspace,baseline,ExitChoice.Discard,false):Engine.Workspace);
+            FlushPopoutGeometry();Engine.Checkpoint();return WorkspaceStore.StoppedCopy(discarded?ExitWorkspace.Prepare(Engine.Workspace,baseline,ExitChoice.Discard,false):Engine.Workspace);
         }
         return WorkspaceStore.StoppedCopy(Engine.Workspace);
     }
@@ -87,11 +87,11 @@ public partial class MainWindow
     private void DuplicateWorkspace_Click(object sender,RoutedEventArgs e)
     {
         string? name=AskWorkspaceName("Duplicate workspace",Engine.Workspace.Name+" copy");if(name is null)return;
-        Engine.Checkpoint();var copy=WorkspaceStore.StoppedCopy(Engine.Workspace);copy.Id=Guid.NewGuid();copy.Name=name;Transition(copy);
+        FlushPopoutGeometry();Engine.Checkpoint();var copy=WorkspaceStore.StoppedCopy(Engine.Workspace);copy.Id=Guid.NewGuid();copy.Name=name;Transition(copy);
     }
     private void DeleteWorkspace_Click(object sender,RoutedEventArgs e)
     {
         if(MessageBox.Show(this,$"Delete '{Engine.Workspace.Name}'? A recoverable copy will remain in Backups.","Delete workspace",MessageBoxButton.OKCancel)!=MessageBoxResult.OK)return;
-        try{Engine.Checkpoint();var next=store.SavedWorkspaces().FirstOrDefault(x=>x.Id!=Engine.Workspace.Id);Transition(next is null?new Workspace():store.LoadWorkspace(next.Id),true);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Delete failed");}
+        try{FlushPopoutGeometry();Engine.Checkpoint();var next=store.SavedWorkspaces().FirstOrDefault(x=>x.Id!=Engine.Workspace.Id);Transition(next is null?new Workspace():store.LoadWorkspace(next.Id),true);}catch(Exception ex){MessageBox.Show(this,ex.Message,"Delete failed");}
     }
 }

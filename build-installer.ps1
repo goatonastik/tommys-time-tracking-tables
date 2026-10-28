@@ -21,7 +21,7 @@ try {
     if (-not $compiler) { throw 'Install Inno Setup 6 or place its compiler under .tools/inno, then run this script again.' }
     & $compiler 'installer\TimersApp.iss'
     if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed.' }
-    $setup = Join-Path $PSScriptRoot 'artifacts\installer\Tommys-Time-Tracking-Tables-Setup-0.4.0.exe'
+    $setup = Join-Path $PSScriptRoot 'artifacts\installer\Tommys-Time-Tracking-Tables-Setup-0.5.0.exe'
     if (-not (Test-Path -LiteralPath $setup)) { throw 'Installer output missing.' }
     $hash = (Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash
     "$hash  $([IO.Path]::GetFileName($setup))" | Set-Content -LiteralPath "$setup.sha256" -Encoding ascii

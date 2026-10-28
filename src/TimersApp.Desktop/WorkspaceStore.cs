@@ -48,10 +48,11 @@ public sealed partial class WorkspaceStore
             timer.Name ??= "Untitled timer"; timer.Description ??= "";
             timer.Width = timer.Width is { } width ? Math.Clamp(width, 170, 1500) : null;
             timer.Height = timer.Height is { } height ? Math.Clamp(height, 100, 1200) : null;
-            timer.Popout.Width = Math.Clamp(timer.Popout.Width, 150, 1800); timer.Popout.Height = Math.Clamp(timer.Popout.Height, 100, 1400);
+            timer.Popout.Validate();
             timer.Alert.IntervalSeconds = Math.Clamp(timer.Alert.IntervalSeconds, 1, 365 * 86400); timer.Alert.Volume = Math.Clamp(timer.Alert.Volume, 0, 1); timer.Alert.SnoozeMinutes = Math.Clamp(timer.Alert.SnoozeMinutes, 1, 1440);
             if (timer.Style is not null) NormalizeStyle(timer.Style); if (timer.PopoutStyle is not null) NormalizeStyle(timer.PopoutStyle);
         }
+        value.SharedPopoutGeometry ??= new(); value.SharedPopoutGeometry.Validate();
         value.Settings.DefaultStyle ??= new(); value.Settings.PopoutStyle ??= TimerStyle.Minimal(); value.Settings.AppBackground ??= new();
         NormalizeStyle(value.Settings.DefaultStyle); NormalizeStyle(value.Settings.PopoutStyle); NormalizeBackground(value.Settings.AppBackground);
         foreach (var preset in value.Presets) { if (preset is null || preset.Style is null) throw new InvalidDataException("A saved style preset is invalid."); NormalizeStyle(preset.Style); }

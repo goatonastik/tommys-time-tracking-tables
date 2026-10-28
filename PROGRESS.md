@@ -1,3 +1,17 @@
+# notes4 review follow-up resolved — 0.5.0 release preparation
+
+2026-10-27: Reproduced threshold resize memory loss, fixed pre-suppression flush and pending native drag capture with shared event ordering. 60 checks pass; tests now explicitly assert wide/tall transitions, intrinsic minimum changes, callback pumping, automatic correction exclusion and fractional-DPI-friendly window assertions. Third Claude read-only review20261027-235132-622 found no confirmed blocking/medium issues; prior review hypotheses and intentional decisions are recorded in CHECKPOINT.md. First-open memory initialization is documented in README/help.
+
+Final installer SHA25672B6C48F140D1F16D6DA71E2EE2173D5AE6BD69D956B3FFDD2078D997F012E95, 49,414,200 bytes. Final portable0.5.0.0 launched/responded/exited with isolated data and durable CleanShutdown=true. No user installation or normal data was changed. Await GitHub source sync, Windows CI, upload and publication. Manual pointer/snap, fractional/mixed DPI, multi-monitor, physical audio and clean Windows11 remain unverified.
+
+---
+# notes4 implementation — paused at verified local build, review follow-up pending
+
+2026-10-27: Implemented the six Notes4 areas and prepared version0.5.0. User requested a stopping point. Final local build: 60 passed, zero warnings/errors (artifacts/notes4-build.log). Candidate installer compiled (artifacts/notes4-package.log); SHA256 DFBCD866F7EE81D9082DF4D9444568AD8A84D10410C5C7CA787FD8D28FF5A1C9. No GitHub synchronization/release or final portable smoke yet.
+
+Read-only Claude reviews: 20261027-193236-735 and 20261027-193922-192. The second identified a possible lost resize at Suppress/native-minimum threshold transitions; investigate/test before release. It also recommends fractional-DPI tolerances. First stable opening intentionally initializes missing size/location memory, as agreed in the plan; clarify this in user help. See CHECKPOINT.md for the exact next steps, evidence, limitations and intentional review decisions. Candidate is not yet approved for release.
+
+---
 # notes3 complete — 0.4.0 preview published
 Published https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.4.0-preview (release426141210), with installer/checksum. Final source remote c80d25a525a6f87a06eb16fd43ecf9947d21b9b1, local50949f052d4e588c87f48668a6bf1b312ae7a3f4. GitHub Windows workflow40610165937 succeeded. Exact final portable package launched/responded/closed with isolated data (artifacts/notes3-portable-smoke-final/result.json). Installer SHA256 B20E921D6DF61F6334DA2AE72EC7DA06B02A01490A373E82B6B9A8704A918C49 matches GitHub digest; proof artifacts/installer/github-release-0.4.0.png. All required work is complete; await user feedback.
 

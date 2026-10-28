@@ -53,12 +53,20 @@ public sealed class StylePreset
      new() { Name = "Digital mint", Style = new() { Digits = DigitStyle.SevenSegment, TextColor = "#77F5C9", Background = new() { Color = "#10251F" } } },
      new() { Name = "Time only", Style = TimerStyle.Minimal() }];
 }
-public sealed class WindowPlacement
+public class PopoutGeometry
 {
     public double? Left { get; set; }
     public double? Top { get; set; }
-    public double Width { get; set; } = 390;
-    public double Height { get; set; } = 340;
+    public double? Width { get; set; }
+    public double? Height { get; set; }
+    public void Validate()
+    {
+        if (Left is not double x || Top is not double y || !double.IsFinite(x) || !double.IsFinite(y) || Math.Abs(x)>1_000_000 || Math.Abs(y)>1_000_000) Left = Top = null;
+        if (Width is not double w || Height is not double h || !double.IsFinite(w) || !double.IsFinite(h) || w <= 0 || h <= 0 || w>1_000_000 || h>1_000_000) Width = Height = null;
+    }
+}
+public sealed class WindowPlacement : PopoutGeometry
+{
     public bool Topmost { get; set; }
     public bool IsOpen { get; set; }
 }

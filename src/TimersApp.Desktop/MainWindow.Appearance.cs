@@ -144,11 +144,13 @@ public partial class MainWindow
     private void UpdateGridColumns()
     {
         var s=Engine.Workspace.Settings;
-        foreach(TimerCard card in Cards.Children)card.ConfigureWorkspace(WorkspaceWidth);
-        double largest=Cards.Children.Cast<TimerCard>().Select(c=>c.Width).DefaultIfEmpty(Math.Max(150,s.CardWidth*s.TimerScale)).Max();
-        int columns=s.ListLayout?1:s.AutoColumns?Math.Max(1,(int)((WorkspaceWidth+s.Spacing)/(largest+s.Spacing))):s.Columns;
-        Cards.Columns=columns;Cards.Spacing=s.Spacing;Cards.MinimumRows=s.ListLayout?0:s.Rows;
-        Cards.EmptyRowHeight=s.FitCardHeight?Cards.Children.Cast<TimerCard>().Select(c=>c.Height).DefaultIfEmpty(Math.Max(48,100*s.TimerScale)).Max():Math.Max(24,s.CardHeight*s.TimerScale);
+        var presenters=Cards.Children.OfType<TimerCardPresenter>().ToArray();
+        foreach(var presenter in presenters)presenter.Configure(s,WorkspaceWidth);
+        double factor=TimerSizing.PresentationScale(s),gap=s.Spacing*factor;
+        double largest=presenters.Select(c=>c.Card.Width*c.Factor).DefaultIfEmpty(Math.Max(150,s.CardWidth*TimerSizing.LogicalScale(s))*factor).Max();
+        int columns=s.ListLayout?1:s.AutoColumns?Math.Max(1,(int)((WorkspaceWidth+gap)/(largest+gap))):s.Columns;
+        Cards.Columns=columns;Cards.Spacing=gap;Cards.MinimumRows=s.ListLayout?0:s.Rows;
+        Cards.EmptyRowHeight=s.FitCardHeight?presenters.Select(c=>c.Card.Height*c.Factor).DefaultIfEmpty(Math.Max(48,100*s.TimerScale)).Max():Math.Max(24,s.CardHeight*TimerSizing.LogicalScale(s))*factor;
         Relayout();
     }
 }

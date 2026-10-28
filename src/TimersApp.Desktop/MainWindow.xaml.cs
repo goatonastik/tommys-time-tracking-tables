@@ -14,6 +14,12 @@ public partial class MainWindow : Window
     private Workspace baseline;
     public TimerEngine Engine { get; private set; }
     private readonly Dictionary<Guid, Window> popouts = [];
+    private readonly Dictionary<Guid, PopoutSession> popoutSessions = [];
+    private void FlushPopoutGeometry(){foreach(var session in popoutSessions.Values)session.Flush();}
+    internal void SuppressPopoutGeometry(TimerRecord timer,Action change)
+    {
+        if(popoutSessions.TryGetValue(timer.Id,out var session))session.Suppress(change);else change();
+    }
     private readonly List<TimerCard> cardViews = [];
     private readonly DispatcherTimer refresh = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private long lastSave = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -107,7 +113,7 @@ public partial class MainWindow : Window
         AppTransform.ScaleX = AppTransform.ScaleY = s.AppScale;
         FitSizePanel();
         UpdateZoomEscape();
-        LayoutButton.Content=new ToolbarIcon { Kind=s.ListLayout?"Grid":"List" };
+        LayoutIcon.Kind=s.ListLayout?"Grid":"List"; LayoutLabel.Text=s.ListLayout?"Grid view":"List view";
         LayoutButton.ToolTip=s.ListLayout?"Switch to grid":"Switch to list";
         System.Windows.Automation.AutomationProperties.SetName(LayoutButton,(string)LayoutButton.ToolTip);
         StatusBar.Visibility = s.ShowStatusBar ? Visibility.Visible : Visibility.Collapsed;
@@ -119,13 +125,13 @@ public partial class MainWindow : Window
     }
     private void Render()
     {
-        cardViews.RemoveAll(card => Cards.Children.Contains(card)); Cards.Children.Clear();
+        foreach(var presenter in Cards.Children.OfType<TimerCardPresenter>())cardViews.Remove(presenter.Card); Cards.Children.Clear();
         var s = Engine.Workspace.Settings; UpdateGridColumns();
         Cards.MinimumRows = s.ListLayout ? 0 : s.Rows; Cards.EmptyRowHeight = s.CardHeight * s.TimerScale; Cards.Spacing = s.Spacing;
         foreach (var timer in Engine.Workspace.Timers.Where(t => !t.Archived))
         {
             var card = new TimerCard(this, timer);
-            Cards.Children.Add(card); cardViews.Add(card);
+            Cards.Children.Add(new TimerCardPresenter(card)); cardViews.Add(card);
         }
         UpdateGridColumns(); QueueLayout();
         EmptyState.Visibility = Cards.Children.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -143,7 +149,7 @@ public partial class MainWindow : Window
         bool backupDue = announce || System.Diagnostics.Stopwatch.GetElapsedTime(lastBackup) > TimeSpan.FromHours(1);
         var result = PersistenceResult.Run(() =>
         {
-            Engine.Checkpoint(); Engine.Workspace.CleanShutdown = clean; store.Save(Engine.Workspace);
+            FlushPopoutGeometry(); Engine.Checkpoint(); Engine.Workspace.CleanShutdown = clean; store.Save(Engine.Workspace);
         }, backupDue ? store.Backup : null);
         lastSave = System.Diagnostics.Stopwatch.GetTimestamp();
         if (!result.Saved)
@@ -206,8 +212,9 @@ public partial class MainWindow : Window
         if (popouts.TryGetValue(timer.Id, out var existing)) { existing.WindowState = WindowState.Normal; existing.Activate(); return; }
         var position = timer.Popout;
         var initial=TimerSizing.InitialPopout(Engine.Workspace.Settings);
-        var window = new Window { Title = timer.Name + " — T⁴", Icon = Icon, Width = restoring ? Math.Clamp(position.Width,150,1800) : initial.Width, Height = restoring ? Math.Clamp(position.Height,100,1400) : initial.Height, MinWidth = 150, MinHeight = 100, Topmost = position.Topmost };
-        if (position.Left is { } left && position.Top is { } top)
+        var geometry=PopoutPlacementPolicy.Resolve(Engine.Workspace,timer);
+        var window = new Window { Title = timer.Name + " — T⁴", Icon = Icon, Width = geometry.Width ?? initial.Width, Height = geometry.Height ?? initial.Height, MinWidth = 150, MinHeight = 100, Topmost = position.Topmost };
+        if (geometry.Left is { } left && geometry.Top is { } top)
         {
             var virtualArea = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
             var titleArea = new Rect(left, top, window.Width, 40);
@@ -218,11 +225,10 @@ public partial class MainWindow : Window
         window.Content = card;
         window.ContextMenu = card.ContextMenu;
         popouts[timer.Id] = window;
-        void Remember() { if (window.WindowState != WindowState.Normal) return; position.Left = window.Left; position.Top = window.Top; position.Width = window.ActualWidth>0?window.ActualWidth:window.Width; position.Height = window.ActualHeight>0?window.ActualHeight:window.Height; }
-        window.LocationChanged += (_, _) => Remember(); window.SizeChanged += (_, _) => Remember();
-        window.Loaded += (_, _) => WindowPlacementService.EnsureVisible(window);
-        window.Closed += (_, _) => { popouts.Remove(timer.Id); cardViews.Remove(card); if (!exiting && !replacingWorkspace) { position.IsOpen = false; Changed(); } };
-        position.IsOpen = true; window.Show(); Remember(); Changed();
+        var session=new PopoutSession(Engine.Workspace,timer,window);popoutSessions[timer.Id]=session;
+        window.Closing+=(_,_)=>session.Flush();
+        window.Closed += (_, _) => { session.Dispose();popoutSessions.Remove(timer.Id);popouts.Remove(timer.Id); cardViews.Remove(card); if (!exiting && !replacingWorkspace) { position.IsOpen = false; Changed(); } };
+        position.IsOpen = true; window.Show(); Changed();
     }
     public void Return(TimerRecord timer) { if (popouts.TryGetValue(timer.Id, out var window)) window.Close(); }
     private void Add_Click(object sender, RoutedEventArgs e) => Edit();
@@ -258,7 +264,18 @@ public partial class MainWindow : Window
         QueueLayout();scaleSaveTimer.Stop();scaleSaveTimer.Start();
     }
     private void UpdateZoomEscape() => ResetZoom.Visibility=Engine.Workspace.Settings.AppScale>1.25?Visibility.Visible:Visibility.Collapsed;
-    private void Toolbar_SizeChanged(object sender,SizeChangedEventArgs e)=>CommandButtons.Columns=e.NewSize.Width<600?2:4;
+    private void Toolbar_SizeChanged(object sender,SizeChangedEventArgs e)=>FitToolbar();
+    private void FitToolbar()
+    {
+        double needed=AddTimerButton.DesiredSize.Width+ToolbarCenter.DesiredSize.Width+ToolbarSquares.DesiredSize.Width-ToolbarSquares.Margin.Left-ToolbarSquares.Margin.Right+6;
+        bool narrow=ToolbarScroll.ViewportWidth<needed;
+        Grid.SetRow(ToolbarSquares,narrow?1:0);Grid.SetColumn(ToolbarSquares,narrow?1:2);
+        ToolbarSquares.Margin=new Thickness(narrow?0:6,narrow?6:0,0,0);
+    }
+    private void Toolbar_ScrollChanged(object sender,ScrollChangedEventArgs e)
+    {
+        if(ToolbarSquares is not null && e.ViewportWidthChange!=0)FitToolbar();
+    }
     private void Size_Click(object sender,RoutedEventArgs e)
     {
         if(SizeOverlay.Visibility==Visibility.Visible){CloseSizePanel();return;}
@@ -308,7 +325,7 @@ public partial class MainWindow : Window
         }
         try
         {
-            Engine.Checkpoint();
+            FlushPopoutGeometry(); Engine.Checkpoint();
             var committed = ExitWorkspace.Prepare(Engine.Workspace, baseline, choice, remember);
             if(scratchWorkspace&&(choice==ExitChoice.Discard||(!scratchHasEdits&&Engine.Workspace.Timers.Count==0)))store.Save(committed,"preferences");else store.Save(committed);
         }

@@ -134,7 +134,7 @@ internal static class Feedback3Checks
         Exception? error=null;dialog.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,new Action(()=>{try{Descendants<Button>(dialog).Single(x=>Equals(x.Content,"Apply")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));}catch(Exception ex){error=ex;dialog.Close();}}));
         if(dialog.ShowDialog()!=true||error is not null)throw new Exception("Dialog Apply failed",error);
     }
-    private static void Render(FrameworkElement element,string name,string artifacts)
+    internal static void Render(FrameworkElement element,string name,string artifacts)
     {
         var visual=element is Window window?(FrameworkElement)window.Content:element;
         int w=Math.Max(1,(int)Math.Ceiling(visual.ActualWidth)),h=Math.Max(1,(int)Math.Ceiling(visual.ActualHeight));
