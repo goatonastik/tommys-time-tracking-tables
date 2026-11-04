@@ -27,7 +27,7 @@ public static class Alerts
 {
     public static bool Evaluate(AlertSettings settings, AlertState state, TimeSpan total, DateTimeOffset now, bool running)
     {
-        if (!settings.Enabled) { state.Active = false; state.SnoozedUntil = null; return false; }
+        if (!settings.Enabled || !running) { Dismiss(state); return false; }
         if (state.SnoozedUntil is { } until)
         {
             if (now < until) return false;
@@ -35,7 +35,7 @@ public static class Alerts
                 state.LastInterval = Math.Max(state.LastInterval, (long)(total.TotalSeconds / settings.IntervalSeconds));
             state.SnoozedUntil = null; state.Active = true; return true;
         }
-        if (!running || !double.IsFinite(settings.IntervalSeconds) || settings.IntervalSeconds < 1) return false;
+        if (!double.IsFinite(settings.IntervalSeconds) || settings.IntervalSeconds < 1) return false;
         long interval = (long)(total.TotalSeconds / settings.IntervalSeconds);
         if (interval <= state.LastInterval || interval < 1 || (!settings.Repeat && state.HasTriggered)) return false;
         state.LastInterval = interval;

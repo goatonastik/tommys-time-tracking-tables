@@ -4,7 +4,7 @@ A Windows 11 desktop stopwatch workspace built with C#, WPF, and .NET 10.
 
 ## Run on Windows 11 (64-bit Intel/AMD)
 
-Download the installer from [GitHub Releases](https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.5.2-preview) and run **Tommys-Time-Tracking-Tables-Setup-0.5.2.exe** to install this preview for your Windows account. Local builds place it under `artifacts/installer`. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
+Download the installer from [GitHub Releases](https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.5.3-preview) and run **Tommys-Time-Tracking-Tables-Setup-0.5.3.exe** to install this preview for your Windows account. Local builds place it under `artifacts/installer`. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
 
 The installer also accepts Windows 10 22H2, the current test machine. Windows 11 remains the intended target; clean Windows 11 testing is still pending.
 
@@ -19,6 +19,7 @@ From the source workspace, **Start Tommy's Time Tracking Tables.cmd** opens the 
 - Named workspaces with a selector, New/Save/Rename/Duplicate/Delete actions and recovery of deleted workspaces. Switching stops timers in the workspace being left; only the selected workspace runs. Duplicate copies are stopped and retain recorded history.
 - Independent named timers with optional descriptions and name suggestions.
 - Optional **Only allow one timer to run at once** in Settings, off by default. Starting another timer ends the previous timer's segment and begins the new one at the same recorded system time. Turning the option on while several timers run keeps the most recently started timer running.
+- Timer starts recorded in 0.5.3 or later keep their order across system clock changes and workspace recovery. Earlier saved segments lack an order number and use their recorded system start time as a fallback.
 - Start/stop/resume; exact running totals; rounded or combined totals.
 - Segment history with full system timestamps; reset and archive retain historical records.
 - The square growing-clock button opens Timer size and Default pop-out size sliders/percentages with optional linking. Application scale is in Settings; open pop-out windows keep their size.
@@ -51,7 +52,7 @@ Development tests use `TIMERSAPP_DATA_DIR` to isolate their files under `artifac
 
 ## Build and verification
 
-Run `./build.ps1` in PowerShell to build and run the 64-check verification suite. Run `./publish.ps1` to produce the self-contained Windows x64 folder and ZIP under `artifacts/release`. Both prefer the project-local .NET 10 SDK and otherwise use an installed .NET 10 SDK. A fresh checkout needs Windows and the .NET 10 SDK; generated files stay under ignored .tools and artifacts folders. Network access is needed when restoring missing packages.
+Run `./build.ps1` in PowerShell to build and run the 67-check verification suite. Run `./publish.ps1` to produce the self-contained Windows x64 folder and ZIP under `artifacts/release`. Both prefer the project-local .NET 10 SDK and otherwise use an installed .NET 10 SDK. A fresh checkout needs Windows and the .NET 10 SDK; generated files stay under ignored .tools and artifacts folders. Network access is needed when restoring missing packages.
 
 The suite covers independent timers, stopped/sleep gaps, duplicate starts, clock changes, reset/history preservation, name snapshots, rounding boundaries, crash recovery, date clipping, leap days, 23/25-hour daylight-saving days, active snapshots, atomic preferences, schema migration, damaged-database recovery, Excel totals/offsets, style inheritance/persistence, alerts/snooze, portable presets/backups, 50 active timers and offscreen WPF layout renders. The standalone app launches and exposes its controls through Windows accessibility. Accessible timer/readout names and dialog labels are checked offscreen; focus a timer and press Shift+F10 or the menu key to reach hidden controls. Live pointer interaction, audible playback, screen readers, mixed-DPI monitors and a clean Windows installation remain unverified.
 

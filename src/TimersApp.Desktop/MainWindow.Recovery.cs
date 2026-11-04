@@ -93,7 +93,7 @@ public partial class MainWindow
             {
                 suspended = false;
                 Engine.ResumeFromSleep();
-                foreach (var timer in Engine.Workspace.Timers.Where(t => !t.Archived && t.AlertState.Active && t.Alert.Enabled)) audio.Play(timer);
+                foreach (var timer in Engine.Workspace.Timers.Where(t => t.IsRunning && !t.Archived && t.AlertState.Active && t.Alert.Enabled)) audio.Play(timer);
                 Changed(false);
             }
         });

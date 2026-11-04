@@ -75,9 +75,11 @@ Test("One-timer setting defaults off and hands running time to the next timer", 
     var first = e.Add("First"); var second = e.Add("Second");
     e.Start(first); time.Advance(10); e.Start(second); Equal(true, first.IsRunning); Equal(true, second.IsRunning);
     e.Stop(first); e.Stop(second); w.Settings.OnlyOneTimerAtATime = true;
-    e.Start(first); time.Advance(15); e.Start(second);
+    e.Start(first); time.Advance(15); time.ShiftWallClock(-3600); e.Start(second);
     Equal(false, first.IsRunning); Equal(true, second.IsRunning);
     Equal(first.Segments.Last().End, second.Segments.Last().Start);
+    Equal(TimeSpan.FromSeconds(15).Ticks, first.Segments.Last().ElapsedTicks);
+    Equal(true, first.Segments.Last().ClockAdjusted);
     Equal(25d, e.Total(first).TotalSeconds);
     time.Advance(8); e.Start(first); Equal(false, second.IsRunning); Equal(true, first.IsRunning);
     Equal(8d, e.Total(second).TotalSeconds);
@@ -87,29 +89,68 @@ Test("Enabling one-timer mode keeps the most recently started timer and persists
 {
     var time = new ManualClock(); var w = new Workspace(); var e = new TimerEngine(w, time);
     var first = e.Add("First"); var second = e.Add("Second"); var third = e.Add("Third");
-    e.Start(first); time.Advance(3); e.Start(second); time.Advance(3); e.Start(third); time.Advance(4);
+    e.Start(first); time.Advance(3); e.Start(second); time.Advance(3); time.ShiftWallClock(-3600); e.Start(third); time.Advance(4);
+    Equal(true, third.Segments.Last().Start < first.Segments.Last().Start);
+    Equal(true, third.Segments.Last().StartSequence > second.Segments.Last().StartSequence);
     w.Settings.OnlyOneTimerAtATime = true;
     var stopped = e.EnforceSingleRunning(); Equal(2, stopped.Count); Equal(true, stopped.Contains(first)); Equal(true, stopped.Contains(second));
     Equal(false, first.IsRunning); Equal(false, second.IsRunning); Equal(true, third.IsRunning);
     Equal(10d, e.Total(first).TotalSeconds); Equal(7d, e.Total(second).TotalSeconds);
     var store = new WorkspaceStore(Path.Combine(artifacts, "one-timer-" + Guid.NewGuid().ToString("N")));
-    e.Checkpoint(); store.Save(w); Equal(true, store.Load()!.Settings.OnlyOneTimerAtATime);
+    e.Checkpoint(); store.Save(w); var loaded = store.Load()!;
+    Equal(true, loaded.Settings.OnlyOneTimerAtATime);
+    Equal(third.Segments.Last().StartSequence, loaded.Timers[2].Segments.Last().StartSequence);
+    loaded.Settings.OnlyOneTimerAtATime = false;
+    var restarted = new TimerEngine(loaded, time); var fourth = restarted.Add("Fourth"); restarted.Start(fourth);
+    Equal(true, fourth.Segments.Last().StartSequence > third.Segments.Last().StartSequence);
+    restarted.Stop(fourth);
 });
 Test("One-timer mode resumes only the latest timer after sleep or recovery", () =>
 {
     var time = new ManualClock(); var w = new Workspace(); var e = new TimerEngine(w, time);
     var first = e.Add("First"); var second = e.Add("Second");
-    e.Start(first); time.Advance(5); e.Start(second); time.Advance(5); e.SuspendForSleep();
+    e.Start(first); time.Advance(5); time.ShiftWallClock(-3600); e.Start(second); time.Advance(5);
+    first.AlertState.Active = true; first.AlertState.SnoozedUntil = time.GetUtcNow().AddMinutes(1);
+    e.SuspendForSleep();
     w.Settings.OnlyOneTimerAtATime = true; time.Advance(100); e.ResumeFromSleep();
     Equal(false, first.IsRunning); Equal(true, second.IsRunning); Equal(1, first.Segments.Count); Equal(2, second.Segments.Count);
+    Equal(false, first.AlertState.Active); Equal<DateTimeOffset?>(null, first.AlertState.SnoozedUntil);
     e.Stop(second); w.Settings.OnlyOneTimerAtATime = false;
-    e.Start(first); time.Advance(2); e.Start(second); time.Advance(3); e.Checkpoint();
+    e.Start(first); time.Advance(2); time.ShiftWallClock(-3600); e.Start(second); time.Advance(3); e.Checkpoint();
+    Equal(true, second.Segments.Last().Start < first.Segments.Last().Start);
     var copy = WorkspaceStore.Copy(w); copy.Settings.OnlyOneTimerAtATime = true;
+    copy.Timers[0].AlertState.Active = true; copy.Timers[0].AlertState.SnoozedUntil = time.GetUtcNow().AddMinutes(1);
     time.Advance(100); var restored = new TimerEngine(copy, time); restored.Recover(false, true);
     var a = copy.Timers[0]; var b = copy.Timers[1];
     Equal(false, a.IsRunning); Equal(true, b.IsRunning);
+    Equal(false, a.AlertState.Active); Equal<DateTimeOffset?>(null, a.AlertState.SnoozedUntil);
     Equal(2, a.Segments.Count); Equal(4, b.Segments.Count);
     Equal(a.Segments.Last().MeasuredThrough, a.Segments.Last().End!.Value);
+});
+Test("Concurrent sleep and crash recovery preserve the order of starts", () =>
+{
+    var time = new ManualClock(); var w = new Workspace(); var e = new TimerEngine(w, time);
+    var a = e.Add("A"); var b = e.Add("B");
+    e.Start(b); time.Advance(2); time.ShiftWallClock(-3600); e.Start(a);
+    e.SuspendForSleep(); e.ResumeFromSleep();
+    Equal(true, a.Segments.Last().StartSequence > b.Segments.Last().StartSequence);
+    w.Settings.OnlyOneTimerAtATime = true; e.EnforceSingleRunning();
+    Equal(true, a.IsRunning); Equal(false, b.IsRunning);
+
+    var secondTime = new ManualClock(); var second = new Workspace(); var running = new TimerEngine(second, secondTime);
+    var secondA = running.Add("A"); var secondB = running.Add("B");
+    running.Start(secondB); secondTime.Advance(2); secondTime.ShiftWallClock(-3600); running.Start(secondA);
+    running.Checkpoint(); var restoredWorkspace = WorkspaceStore.Copy(second);
+    var restored = new TimerEngine(restoredWorkspace, secondTime); restored.Recover(false, true);
+    restoredWorkspace.Settings.OnlyOneTimerAtATime = true; restored.EnforceSingleRunning();
+    Equal(true, restoredWorkspace.Timers[0].IsRunning); Equal(false, restoredWorkspace.Timers[1].IsRunning);
+});
+Test("A malformed maximum start order cannot block starting a timer", () =>
+{
+    var time = new ManualClock(); var w = new Workspace(); var existing = new TimerRecord { Name = "Existing" };
+    existing.Segments.Add(new Segment { Start = time.GetUtcNow(), End = time.GetUtcNow(), StartSequence = long.MaxValue });
+    w.Timers.Add(existing); var e = new TimerEngine(w, time); var next = e.Add("Next");
+    e.Start(next); Equal(true, next.Segments.Last().StartSequence > existing.Segments.Last().StartSequence);
 });
 Test("SQLite roundtrip, baseline isolation, and backup", () =>
 {
@@ -158,6 +199,14 @@ Test("Snooze restores alert only at deadline and disabling silences it", () =>
     Alerts.Snooze(s, now, 5); Equal(false, s.Active); Equal(false, Alerts.Evaluate(a, s, TimeSpan.FromMinutes(3), now.AddMinutes(4), true));
     Equal(true, Alerts.Evaluate(a, s, TimeSpan.FromMinutes(4), now.AddMinutes(5), true)); a.Enabled = false;
     Equal(false, Alerts.Evaluate(a, s, TimeSpan.FromMinutes(6), now.AddMinutes(6), true)); Equal(false, s.Active);
+});
+Test("A stopped timer does not reactivate an expired snoozed alert", () =>
+{
+    var a = new AlertSettings { Enabled = true, IntervalSeconds = 10 };
+    var s = new AlertState { Active = true, LastInterval = 1 }; var now = DateTimeOffset.UtcNow;
+    Alerts.Snooze(s, now, 5);
+    Equal(false, Alerts.Evaluate(a, s, TimeSpan.FromSeconds(30), now.AddMinutes(6), false));
+    Equal(false, s.Active); Equal<DateTimeOffset?>(null, s.SnoozedUntil);
 });
 Test("One-shot alerts do not rearm after dismiss", () =>
 {
@@ -271,7 +320,7 @@ Test("Render workspace with three independent timer cards", () =>
                 .Single(c=>Equals(c.Content,"Only allow one timer to run at once"));
             Equal(false,oneTimerCheck.IsChecked);
             var uiFirst=window.Engine.Add("Settings first");var uiSecond=window.Engine.Add("Settings second");
-            window.Engine.Start(uiFirst);window.Engine.Start(uiSecond);oneTimerCheck.IsChecked=true;
+            window.Engine.Start(uiFirst);window.Engine.Start(uiSecond);uiFirst.AlertState.Active=true;oneTimerCheck.IsChecked=true;
             Exception? applyError=null;
             settingDialog.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,new Action(()=>
             {
@@ -282,8 +331,10 @@ Test("Render workspace with three independent timer cards", () =>
             }));
             Equal(true,settingDialog.ShowDialog()==true);if(applyError is not null)throw applyError;
             Equal(true,window.Engine.Workspace.Settings.OnlyOneTimerAtATime);
-            Equal(false,uiFirst.IsRunning);Equal(true,uiSecond.IsRunning);
+            Equal(false,uiFirst.IsRunning);Equal(true,uiSecond.IsRunning);Equal(false,uiFirst.AlertState.Active);
+            uiSecond.AlertState.Active=true;uiSecond.AlertState.SnoozedUntil=DateTimeOffset.UtcNow.AddMinutes(5);
             window.Toggle(uiFirst);Equal(true,uiFirst.IsRunning);Equal(false,uiSecond.IsRunning);
+            Equal(false,uiSecond.AlertState.Active);Equal<DateTimeOffset?>(null,uiSecond.AlertState.SnoozedUntil);
             window.Engine.Stop(uiFirst);window.Engine.Workspace.Timers.Remove(uiFirst);window.Engine.Workspace.Timers.Remove(uiSecond);
             window.Engine.Workspace.Settings.OnlyOneTimerAtATime=false;window.RefreshWorkspaceView();
             Feedback3Checks.Settings(window,artifacts);

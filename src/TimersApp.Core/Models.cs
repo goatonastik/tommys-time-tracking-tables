@@ -84,6 +84,7 @@ public sealed class Segment
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
     public DateTimeOffset Start { get; set; }
+    public long StartSequence { get; set; }
     public DateTimeOffset? End { get; set; }
     public DateTimeOffset MeasuredThrough { get; set; }
     public string TimeZoneId { get; set; } = TimeZoneInfo.Local.Id;

@@ -5,6 +5,8 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
 {
     private readonly TimeProvider clock = time ?? TimeProvider.System;
     private readonly Dictionary<Guid, (long Timestamp, long BaseTicks)> active = [];
+    private long lastStartSequence = Math.Max(0, workspace.Timers.SelectMany(t => t.Segments)
+        .Select(s => s.StartSequence).DefaultIfEmpty().Max());
     public Workspace Workspace { get; } = workspace;
     public DateTimeOffset Now => clock.GetUtcNow().ToLocalTime();
 
@@ -31,7 +33,7 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
         if (Workspace.Settings.OnlyOneTimerAtATime)
             foreach (var other in Workspace.Timers.Where(t => t.IsRunning && t.Id != timer.Id).ToArray()) StopAt(other, now, timestamp);
         var segment = new Segment { RunId = timer.RunId, Name = timer.Name,
-            Description = timer.Description, Start = now, MeasuredThrough = now };
+            Description = timer.Description, Start = now, StartSequence = NextStartSequence(), MeasuredThrough = now };
         timer.Segments.Add(segment);
         active[segment.Id] = (timestamp, 0);
     }
@@ -57,7 +59,8 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
         var running = Workspace.Timers.Where(t => t.IsRunning).ToArray();
         if (running.Length <= 1) return [];
         var keep = running.Where(t => !t.Archived)
-            .OrderBy(t => t.Segments.Last(s => s.End is null).Start).LastOrDefault();
+            .OrderBy(t => t.Segments.Last(s => s.End is null).StartSequence)
+            .ThenBy(t => t.Segments.Last(s => s.End is null).Start).LastOrDefault();
         var stopped = running.Where(t => t != keep).ToArray();
         var now = Now;
         var timestamp = clock.GetTimestamp();
@@ -116,14 +119,29 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
         var candidates = Workspace.Timers.Where(t => t.ResumeAfterSleep && !t.Archived).ToArray();
         foreach (var timer in Workspace.Timers.Where(t => t.ResumeAfterSleep)) timer.ResumeAfterSleep = false;
         foreach (var timer in SelectForResume(candidates)) Start(timer);
+        foreach (var timer in Workspace.Timers.Where(t => !t.IsRunning)) Alerts.Dismiss(timer.AlertState);
     }
 
     private IEnumerable<TimerRecord> SelectForResume(IEnumerable<TimerRecord> candidates)
     {
-        var eligible = candidates.Where(t => !t.Archived).ToArray();
-        if (!Workspace.Settings.OnlyOneTimerAtATime) return eligible;
-        var latest = eligible.OrderBy(t => t.Segments.LastOrDefault()?.Start ?? DateTimeOffset.MinValue).LastOrDefault();
-        return latest is null ? [] : [latest];
+        var ordered = candidates.Where(t => !t.Archived)
+            .OrderBy(t => t.Segments.LastOrDefault()?.StartSequence ?? 0)
+            .ThenBy(t => t.Segments.LastOrDefault()?.Start ?? DateTimeOffset.MinValue).ToArray();
+        if (!Workspace.Settings.OnlyOneTimerAtATime) return ordered;
+        return ordered.Length == 0 ? [] : [ordered[^1]];
+    }
+
+    private long NextStartSequence()
+    {
+        if (lastStartSequence == long.MaxValue)
+        {
+            // A malformed imported value must not make Start or resume fail.
+            var ordered = Workspace.Timers.SelectMany(t => t.Segments)
+                .OrderBy(s => s.StartSequence).ThenBy(s => s.Start).ToArray();
+            for (var i = 0; i < ordered.Length; i++) ordered[i].StartSequence = i + 1L;
+            lastStartSequence = ordered.LongLength;
+        }
+        return ++lastStartSequence;
     }
 
     // Recovery closes the old segment at the last checkpoint, preserving a visible gap.
@@ -151,6 +169,7 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
             if (resume && !timer.Archived) toResume.Add(timer);
         }
         foreach (var timer in SelectForResume(toResume)) Start(timer);
+        foreach (var timer in Workspace.Timers.Where(t => !t.IsRunning)) Alerts.Dismiss(timer.AlertState);
     }
 
     private void RememberName(string name)
