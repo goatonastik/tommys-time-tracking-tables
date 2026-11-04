@@ -211,3 +211,7 @@ After published 0.5.1, prepared a development-identity x64 MSIX builder, Store s
 
 ---
 
+# Claude reviewer connection — 2026-11-03
+
+The 0.5.2 review initially failed with `ECONNREFUSED` despite active Claude Pro sign-in. Network access for `api.anthropic.com:443` was blocked in the restricted command runner; the same read-only script completed with network permission. Feature review: `artifacts/claude-reviews/20261103-231804-503/review.md`; final wrapper review: `artifacts/claude-reviews/20261103-232454-430/review.md` (no confirmed wrapper defect). The feature review found a confirmed source-level clock-shift edge case in single-timer mode: choosing the "most recently started" timer by wall-clock `Segment.Start` can choose an older timer after the system clock moves backwards. Fix with a persisted start sequence and a focused clock-shift test in the next application change. Test gaps noted by Claude (alert cleanup and tick continuity assertions) can be covered alongside that fix. The README check count was corrected from 61 to 64. No application code or published 0.5.2 package was changed in the connection repair.
+

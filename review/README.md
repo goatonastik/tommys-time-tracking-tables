@@ -14,6 +14,8 @@ The script defaults to the `sonnet` model alias; pass `-Model opus` for a differ
 
 The script reads tracked source paths from Git and snapshots their current working-file contents, with line numbers. It includes specifications, implementation, tests and build instructions. Generated files, images, sounds, databases and credentials are excluded. New source files must be added to Git before they appear in the snapshot.
 
+Claude needs outbound access to `api.anthropic.com:443`. If a review reports `ECONNREFUSED`, check `& "$env:USERPROFILE\.local\bin\claude.exe" auth status`. When it says `loggedIn: true`, rerun `review-claude.ps1` with network access in the execution environment; signing in again does not remove a network restriction. Keep the same read-only review arguments. This project has succeeded with the command runner's `require_escalated` network permission while the default restricted environment refused the connection.
+
 Claude receives that snapshot through standard input. Safe mode disables customizations; built-in tools and MCP tools are disabled for the review. Inherited API credentials/provider selections are removed from the child process so this workflow uses subscription sign-in. No credentials are saved in this repository.
 
 Input snapshots, file lists, diagnostics and reviews are saved under `artifacts/claude-reviews/`, which Git ignores. Read the findings critically: this is static analysis, not executed tests. Verify findings against source and reproduce bugs before implementing fixes. Claude's responses do not authorize changes or other external actions.
