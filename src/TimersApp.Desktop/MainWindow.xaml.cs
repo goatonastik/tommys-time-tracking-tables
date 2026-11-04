@@ -175,7 +175,13 @@ public partial class MainWindow : Window
         return true;
     }
     private void Preferences() => store.Save(new Workspace { Id=Engine.Workspace.Id,Name=Engine.Workspace.Name,Settings = new AppSettings { AutoSave = Engine.Workspace.Settings.AutoSave, RestoreOnLaunch = Engine.Workspace.Settings.RestoreOnLaunch, ExitChoice = Engine.Workspace.Settings.ExitChoice } }, "preferences");
-    public void Toggle(TimerRecord timer) { if (timer.IsRunning) Engine.Stop(timer); else Engine.Start(timer); Changed(false); }
+    public void Toggle(TimerRecord timer)
+    {
+        var running = Engine.Workspace.Timers.Where(t => t.IsRunning).ToArray();
+        if (timer.IsRunning) Engine.Stop(timer); else Engine.Start(timer);
+        foreach (var stopped in running.Where(t => !t.IsRunning)) { audio.Stop(stopped.Id); Alerts.Dismiss(stopped.AlertState); }
+        Changed(false);
+    }
     public void Reset(TimerRecord timer)
     {
         if (MessageBox.Show(this, "Start a fresh total? Previous segments will remain in history and exports.", "Reset total", MessageBoxButton.OKCancel) != MessageBoxResult.OK) return;

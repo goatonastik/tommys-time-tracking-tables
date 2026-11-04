@@ -3,7 +3,7 @@
 Windows 11 desktop application, C# / WPF / .NET 10. No account or server required.
 
 ## Timer behavior
-- Independently add/remove/name/describe simultaneous count-up timers.
+- Independently add/remove/name/describe count-up timers. Simultaneous running is allowed by default; an optional workspace setting limits running to one timer and automatically stops the previous timer when another starts.
 - Default total includes only running segments. Each start/resume opens a segment; stop closes it.
 - History button shows exact system start/stop timestamps and exact duration for each segment.
 - Reset archives the previous run; removing a timer retains exportable history by default.

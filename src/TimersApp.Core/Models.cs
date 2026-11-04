@@ -53,6 +53,7 @@ public sealed class AppSettings
     public TimerStyle PopoutStyle { get; set; } = TimerStyle.Minimal();
     public BackgroundStyle AppBackground { get; set; } = new() { Color = "#0E1525" };
     public bool PauseDuringSleep { get; set; } = true;
+    public bool OnlyOneTimerAtATime { get; set; }
 }
 
 public sealed class TimerRecord

@@ -68,6 +68,49 @@ Test("Active snapshots retain blank stop time", () =>
     var rows = Reports.Build(w, new(null, null), TimeZoneInfo.Utc); Equal<DateTimeOffset?>(null, rows[0].ActualStop); Equal(0, Reports.Build(w, new(null, null, IncludeRunning: false), TimeZoneInfo.Utc).Count);
 });
 string artifacts = Path.GetFullPath("artifacts/tests"); Directory.CreateDirectory(artifacts);
+Test("One-timer setting defaults off and hands running time to the next timer", () =>
+{
+    var time = new ManualClock(); var w = new Workspace(); var e = new TimerEngine(w, time);
+    Equal(false, w.Settings.OnlyOneTimerAtATime);
+    var first = e.Add("First"); var second = e.Add("Second");
+    e.Start(first); time.Advance(10); e.Start(second); Equal(true, first.IsRunning); Equal(true, second.IsRunning);
+    e.Stop(first); e.Stop(second); w.Settings.OnlyOneTimerAtATime = true;
+    e.Start(first); time.Advance(15); e.Start(second);
+    Equal(false, first.IsRunning); Equal(true, second.IsRunning);
+    Equal(first.Segments.Last().End, second.Segments.Last().Start);
+    Equal(25d, e.Total(first).TotalSeconds);
+    time.Advance(8); e.Start(first); Equal(false, second.IsRunning); Equal(true, first.IsRunning);
+    Equal(8d, e.Total(second).TotalSeconds);
+    e.Start(first); Equal(3, first.Segments.Count);
+});
+Test("Enabling one-timer mode keeps the most recently started timer and persists", () =>
+{
+    var time = new ManualClock(); var w = new Workspace(); var e = new TimerEngine(w, time);
+    var first = e.Add("First"); var second = e.Add("Second"); var third = e.Add("Third");
+    e.Start(first); time.Advance(3); e.Start(second); time.Advance(3); e.Start(third); time.Advance(4);
+    w.Settings.OnlyOneTimerAtATime = true;
+    var stopped = e.EnforceSingleRunning(); Equal(2, stopped.Count); Equal(true, stopped.Contains(first)); Equal(true, stopped.Contains(second));
+    Equal(false, first.IsRunning); Equal(false, second.IsRunning); Equal(true, third.IsRunning);
+    Equal(10d, e.Total(first).TotalSeconds); Equal(7d, e.Total(second).TotalSeconds);
+    var store = new WorkspaceStore(Path.Combine(artifacts, "one-timer-" + Guid.NewGuid().ToString("N")));
+    e.Checkpoint(); store.Save(w); Equal(true, store.Load()!.Settings.OnlyOneTimerAtATime);
+});
+Test("One-timer mode resumes only the latest timer after sleep or recovery", () =>
+{
+    var time = new ManualClock(); var w = new Workspace(); var e = new TimerEngine(w, time);
+    var first = e.Add("First"); var second = e.Add("Second");
+    e.Start(first); time.Advance(5); e.Start(second); time.Advance(5); e.SuspendForSleep();
+    w.Settings.OnlyOneTimerAtATime = true; time.Advance(100); e.ResumeFromSleep();
+    Equal(false, first.IsRunning); Equal(true, second.IsRunning); Equal(1, first.Segments.Count); Equal(2, second.Segments.Count);
+    e.Stop(second); w.Settings.OnlyOneTimerAtATime = false;
+    e.Start(first); time.Advance(2); e.Start(second); time.Advance(3); e.Checkpoint();
+    var copy = WorkspaceStore.Copy(w); copy.Settings.OnlyOneTimerAtATime = true;
+    time.Advance(100); var restored = new TimerEngine(copy, time); restored.Recover(false, true);
+    var a = copy.Timers[0]; var b = copy.Timers[1];
+    Equal(false, a.IsRunning); Equal(true, b.IsRunning);
+    Equal(2, a.Segments.Count); Equal(4, b.Segments.Count);
+    Equal(a.Segments.Last().MeasuredThrough, a.Segments.Last().End!.Value);
+});
 Test("SQLite roundtrip, baseline isolation, and backup", () =>
 {
     var store = new WorkspaceStore(Path.Combine(artifacts, "store-" + Guid.NewGuid().ToString("N"))); store.Save(workspace); var loaded = store.Load()!;
@@ -220,7 +263,30 @@ Test("Render workspace with three independent timer cards", () =>
             string archivePath = Path.Combine(artifacts, "portable.t4backup"); WorkspaceArchive.Export(archivePath, data);
             var portable = WorkspaceArchive.Import(archivePath, Path.Combine(folder, "restored")); Equal(3, portable.Timers.Count); Equal(true, File.Exists(portable.Timers[0].Style!.Background.ImagePath)); Equal(.1, portable.Timers[0].Style!.Background.CropX);
             var bg = new ImageBackdrop { Width = 500, Height = 250 }; bg.Update(imported.Style.Background); bg.Measure(new System.Windows.Size(500, 250)); bg.Arrange(new System.Windows.Rect(0, 0, 500, 250)); Equal<string?>(null, bg.ImageError);
-            window.Show();window.UpdateLayout();Feedback3Checks.Settings(window,artifacts);
+            window.Show();window.UpdateLayout();
+            var settingDialog=window.CreateSettingsDialog();
+            var settingColumns=(System.Windows.Controls.Grid)settingDialog.Fields.Children[0];
+            var oneTimerCheck=settingColumns.Children.OfType<System.Windows.Controls.StackPanel>()
+                .SelectMany(p=>p.Children.OfType<System.Windows.Controls.CheckBox>())
+                .Single(c=>Equals(c.Content,"Only allow one timer to run at once"));
+            Equal(false,oneTimerCheck.IsChecked);
+            var uiFirst=window.Engine.Add("Settings first");var uiSecond=window.Engine.Add("Settings second");
+            window.Engine.Start(uiFirst);window.Engine.Start(uiSecond);oneTimerCheck.IsChecked=true;
+            Exception? applyError=null;
+            settingDialog.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,new Action(()=>
+            {
+                try{var actions=((System.Windows.Controls.DockPanel)settingDialog.Content).Children.OfType<System.Windows.Controls.WrapPanel>().Single();
+                    actions.Children.OfType<System.Windows.Controls.Button>().Single(b=>Equals(b.Content,"Apply"))
+                        .RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));}
+                catch(Exception ex){applyError=ex;settingDialog.Close();}
+            }));
+            Equal(true,settingDialog.ShowDialog()==true);if(applyError is not null)throw applyError;
+            Equal(true,window.Engine.Workspace.Settings.OnlyOneTimerAtATime);
+            Equal(false,uiFirst.IsRunning);Equal(true,uiSecond.IsRunning);
+            window.Toggle(uiFirst);Equal(true,uiFirst.IsRunning);Equal(false,uiSecond.IsRunning);
+            window.Engine.Stop(uiFirst);window.Engine.Workspace.Timers.Remove(uiFirst);window.Engine.Workspace.Timers.Remove(uiSecond);
+            window.Engine.Workspace.Settings.OnlyOneTimerAtATime=false;window.RefreshWorkspaceView();
+            Feedback3Checks.Settings(window,artifacts);
             Feedback4Checks.Windows(window,artifacts);Feedback2Checks.LiveWindows(window);
         }
         catch (Exception ex) { error = ex; }

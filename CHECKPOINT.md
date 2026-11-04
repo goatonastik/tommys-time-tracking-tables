@@ -113,3 +113,7 @@ Updated 2026-10-28. The user requested a Microsoft Store release and trusted sig
 
 ---
 
+# Current checkpoint — one timer at a time / 0.5.2 preview
+
+Updated 2026-11-03. Added a per-workspace Settings checkbox, off by default, to allow only one running timer. Starting another stops the former at the same captured system time as the new start. Enabling the setting while several run retains the most recently started; sleep and crash recovery likewise resume only that timer. UI cleanup dismisses the stopped timer's alert and sound. Three engine/persistence tests and a shown WPF settings/toggle test were added. Final local build `artifacts/one-timer-build-final-2.log`: 64 passed, 0 failed. `publish.ps1` and `build-installer.ps1 -SkipPublish` succeeded; installer `artifacts/installer/Tommys-Time-Tracking-Tables-Setup-0.5.2.exe` is 49,413,090 bytes, SHA256 2B62B789E8EDEFAEF41FE8D2032A58F285ECD1F077E253F3F1A8D006D6465FAB. It is unsigned because signing is paused at the user's request. Claude read-only review attempted under `artifacts/claude-reviews/20261103-230218-148/` failed ECONNREFUSED; no Claude findings are claimed. Final manual diff review complete. Pending: commit local changes, upload source to remote without rewriting either history, verify Windows CI, publish GitHub 0.5.2 preview installer/checksum, and update this checkpoint with release evidence. Normal user data/installation was not touched.
+

@@ -4,7 +4,7 @@ A Windows 11 desktop stopwatch workspace built with C#, WPF, and .NET 10.
 
 ## Run on Windows 11 (64-bit Intel/AMD)
 
-Download the installer from [GitHub Releases](https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.5.1-preview) and run **Tommys-Time-Tracking-Tables-Setup-0.5.1.exe** to install this preview for your Windows account. Local builds place it under `artifacts/installer`. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
+Download the installer from [GitHub Releases](https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.5.2-preview) and run **Tommys-Time-Tracking-Tables-Setup-0.5.2.exe** to install this preview for your Windows account. Local builds place it under `artifacts/installer`. Setup adds a Start menu shortcut and offers an optional desktop shortcut. The runtime is included, and administrator access is not required. Save and close the app before installing again. Uninstalling preserves saved data. This preview is unsigned, so Windows may show an unknown-publisher warning.
 
 The installer also accepts Windows 10 22H2, the current test machine. Windows 11 remains the intended target; clean Windows 11 testing is still pending.
 
@@ -18,6 +18,7 @@ From the source workspace, **Start Tommy's Time Tracking Tables.cmd** opens the 
 
 - Named workspaces with a selector, New/Save/Rename/Duplicate/Delete actions and recovery of deleted workspaces. Switching stops timers in the workspace being left; only the selected workspace runs. Duplicate copies are stopped and retain recorded history.
 - Independent named timers with optional descriptions and name suggestions.
+- Optional **Only allow one timer to run at once** in Settings, off by default. Starting another timer ends the previous timer's segment and begins the new one at the same recorded system time. Turning the option on while several timers run keeps the most recently started timer running.
 - Start/stop/resume; exact running totals; rounded or combined totals.
 - Segment history with full system timestamps; reset and archive retain historical records.
 - The square growing-clock button opens Timer size and Default pop-out size sliders/percentages with optional linking. Application scale is in Settings; open pop-out windows keep their size.

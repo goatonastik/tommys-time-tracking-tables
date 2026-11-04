@@ -26,21 +26,43 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
     public void Start(TimerRecord timer)
     {
         if (timer.Archived || timer.IsRunning) return;
+        var now = Now;
+        var timestamp = clock.GetTimestamp();
+        if (Workspace.Settings.OnlyOneTimerAtATime)
+            foreach (var other in Workspace.Timers.Where(t => t.IsRunning && t.Id != timer.Id).ToArray()) StopAt(other, now, timestamp);
         var segment = new Segment { RunId = timer.RunId, Name = timer.Name,
-            Description = timer.Description, Start = Now, MeasuredThrough = Now };
+            Description = timer.Description, Start = now, MeasuredThrough = now };
         timer.Segments.Add(segment);
-        active[segment.Id] = (clock.GetTimestamp(), 0);
+        active[segment.Id] = (timestamp, 0);
     }
 
     public void Stop(TimerRecord timer)
+        => StopAt(timer, Now, clock.GetTimestamp());
+
+    private void StopAt(TimerRecord timer, DateTimeOffset now, long timestamp)
     {
         timer.ResumeAfterSleep = false;
         var segment = timer.Segments.LastOrDefault(x => x.End is null);
         if (segment is null) return;
-        Checkpoint(segment);
-        segment.End = Now;
-        segment.MeasuredThrough = segment.End.Value;
+        CheckpointAt(segment, now, timestamp);
+        segment.End = now;
+        segment.MeasuredThrough = now;
         active.Remove(segment.Id);
+    }
+
+    /// <summary>When the setting is enabled mid-session, keep the newest running timer.</summary>
+    public IReadOnlyList<TimerRecord> EnforceSingleRunning()
+    {
+        if (!Workspace.Settings.OnlyOneTimerAtATime) return [];
+        var running = Workspace.Timers.Where(t => t.IsRunning).ToArray();
+        if (running.Length <= 1) return [];
+        var keep = running.Where(t => !t.Archived)
+            .OrderBy(t => t.Segments.Last(s => s.End is null).Start).LastOrDefault();
+        var stopped = running.Where(t => t != keep).ToArray();
+        var now = Now;
+        var timestamp = clock.GetTimestamp();
+        foreach (var timer in stopped) StopAt(timer, now, timestamp);
+        return stopped;
     }
 
     public void Reset(TimerRecord timer)
@@ -67,11 +89,14 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
     }
 
     private void Checkpoint(Segment segment)
+        => CheckpointAt(segment, Now, clock.GetTimestamp());
+
+    private void CheckpointAt(Segment segment, DateTimeOffset now, long timestamp)
     {
         // Restored records have no live monotonic anchor. Do not move their recovery boundary.
-        if (!active.ContainsKey(segment.Id)) return;
-        segment.ElapsedTicks = Elapsed(segment).Ticks;
-        segment.MeasuredThrough = Now;
+        if (!active.TryGetValue(segment.Id, out var anchor)) return;
+        segment.ElapsedTicks = anchor.BaseTicks + clock.GetElapsedTime(anchor.Timestamp, timestamp).Ticks;
+        segment.MeasuredThrough = now;
         if (Math.Abs((segment.MeasuredThrough - segment.Start).TotalSeconds - TimeSpan.FromTicks(segment.ElapsedTicks).TotalSeconds) > 1)
             segment.ClockAdjusted = true;
     }
@@ -88,23 +113,30 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
 
     public void ResumeFromSleep()
     {
-        foreach (var timer in Workspace.Timers.Where(t => t.ResumeAfterSleep))
-        {
-            timer.ResumeAfterSleep = false;
-            if (!timer.Archived) Start(timer);
-        }
+        var candidates = Workspace.Timers.Where(t => t.ResumeAfterSleep && !t.Archived).ToArray();
+        foreach (var timer in Workspace.Timers.Where(t => t.ResumeAfterSleep)) timer.ResumeAfterSleep = false;
+        foreach (var timer in SelectForResume(candidates)) Start(timer);
+    }
+
+    private IEnumerable<TimerRecord> SelectForResume(IEnumerable<TimerRecord> candidates)
+    {
+        var eligible = candidates.Where(t => !t.Archived).ToArray();
+        if (!Workspace.Settings.OnlyOneTimerAtATime) return eligible;
+        var latest = eligible.OrderBy(t => t.Segments.LastOrDefault()?.Start ?? DateTimeOffset.MinValue).LastOrDefault();
+        return latest is null ? [] : [latest];
     }
 
     // Recovery closes the old segment at the last checkpoint, preserving a visible gap.
     // Including the interruption extends that segment; resuming creates a fresh segment.
     public void Recover(bool includeInterruption, bool resume)
     {
+        var toResume = new List<TimerRecord>();
         foreach (var timer in Workspace.Timers)
         {
             if (timer.ResumeAfterSleep)
             {
                 timer.ResumeAfterSleep = false;
-                if (resume && !timer.Archived) Start(timer);
+                if (resume && !timer.Archived) toResume.Add(timer);
                 continue;
             }
             var segment = timer.Segments.LastOrDefault(x => x.End is null);
@@ -116,8 +148,9 @@ public sealed class TimerEngine(Workspace workspace, TimeProvider? time = null)
             }
             segment.End = segment.MeasuredThrough;
             segment.Recovered = true;
-            if (resume && !timer.Archived) Start(timer);
+            if (resume && !timer.Archived) toResume.Add(timer);
         }
+        foreach (var timer in SelectForResume(toResume)) Start(timer);
     }
 
     private void RememberName(string name)
