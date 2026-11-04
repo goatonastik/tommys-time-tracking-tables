@@ -1,4 +1,9 @@
-# Current checkpoint — 0.5.3 clock-order and alert fix, release checks complete
+# Current checkpoint — account-independent handoff
+
+2026-11-04: Start at [START-HERE.md](START-HERE.md) for the authoritative current baseline, source map, decisions, known issues and development/release procedure. Application remains 0.5.3; this update changes documentation only. Selected historical test/review evidence is preserved in docs/evidence. Older entries below are historical and do not authorize new tasks. Signing/Store remain paused.
+
+---
+# Historical checkpoint — 0.5.3 clock-order and alert fix, release checks complete
 
 Updated 2026-11-03. Fixed the 0.5.2 backward-clock edge case by persisting a sequence on every timer segment and choosing the most recently started timer by sequence. Concurrent sleep/crash resume now preserves the original start order, and a malformed maximum sequence is renumbered before another start. Stopped timers' snoozed alerts no longer reactivate; power resume only replays active alerts for running timers. New and extended tests cover handoff tick continuity, setting enforcement, persistence, sleep/crash recovery, malformed sequence and stopped alerts. Final network-enabled `build.ps1` log `artifacts/clock-sequence-build-release.log`: 67 passed, 0 failed, 0 build warnings/errors. Read-only Claude reviews `artifacts/claude-reviews/20261103-233431-053`, `233828-583` and final `234148-111/review.md`; final review found no confirmed defect in the changes. NuGet direct/transitive advisory queries reported no currently listed vulnerable packages (`artifacts/clock-sequence-app-nuget-audit.log`, `clock-sequence-nuget-audit.log`). `publish.ps1` and Inno installer build passed. The 0.5.3 installer is 49,412,916 bytes, SHA256 58CA731D576CE6A7445A915B1238326605829F6F622FF29C2E50163EB66E17AA, and unsigned as previously requested. Microsoft Defender custom scan of this exact file completed with zero matching detections (`artifacts/clock-sequence-defender-scan.json`). The portable app 0.5.3.0 opened and responded with a fresh isolated data folder (`artifacts/smoke-0.5.3-e17c8068da014ed6abea473ee3fb0fbb/result.json`); it was terminated after that check, so no clean-close claim. No normal installation or workspace data was touched. Pre-0.5.3 saved segments lack sequence numbers and fall back to system start time. Local implementation commit 617b5af, remote release source 8125bbf434c0767069432f2e05fda153e7329bc1; both histories preserved without force push. GitHub Windows workflow 41788143140 / verify job 126434952972 passed. Published https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.5.3-preview as a prerelease. Its installer and checksum assets match the local SHA256. Added the 69,596,853-byte portable ZIP and its checksum to the same release; ZIP SHA256 C0A5CE90E6EC9008DF3EF53C3E4B72F8092348CA608909B156497F49457EFAB2 matches GitHub, and its 439 entries include an executable identical to the published folder. Signing remains paused; no certification is claimed for either download.
 
@@ -40,7 +45,7 @@ Updated 2026-10-27. All notes3 work and the user's zero-margin refinement are im
 - User-installed app PID29416 was running and remained untouched, as did normal data. No installer install/uninstall test this pass to avoid affecting that installation. All test app processes closed. Remaining manual QA: physical sound, pointer interaction, mixed DPI/multi-monitor, clean Windows11 and long-history responsiveness; host is Windows10 22H2.
 - Full implementation and review details are at the top of PROGRESS.md. notes3.txt is preserved; FEEDBACK3-IMPLEMENTATION-PLAN.md retains the planning decisions. Do not continue changing source for optional review suggestions.
 ---
-# Current checkpoint — notes2 complete / 0.3.0 preview published
+# Historical checkpoint — notes2 complete / 0.3.0 preview published
 
 Updated 2026-10-27. All requested notes2 work is implemented, tested, reviewed and published. Await user testing/feedback; do not keep changing source solely for optional review suggestions.
 
@@ -54,7 +59,7 @@ Updated 2026-10-27. All requested notes2 work is implemented, tested, reviewed a
 - Remaining manual QA: click-through (Windows blocks simulated pointer input), physical audible playback/device removal, mixed DPI/multi-monitor, clean Windows 11 and long-history UI performance. Actual machine is Windows 10 22H2. Shown WPF geometry tests passed; do not equate them with live mouse testing. Local MP3 decoding used an ignored public silence fixture and is not a CI dependency.
 
 ---
-# Current checkpoint — notes2 planning / ready for Sol
+# Historical checkpoint — notes2 planning / ready for Sol
 
 Updated 2026-10-27. The user requested a plan for notes2.txt before switching from Astra to Sol. Planning is complete in FEEDBACK2-IMPLEMENTATION-PLAN.md; no application source, database, package or release has changed. notes2.txt remains untouched.
 
@@ -67,7 +72,7 @@ Updated 2026-10-27. The user requested a plan for notes2.txt before switching fr
 - Next: after the user switches to Sol, read AGENTS.md, notes2.txt and FEEDBACK2-IMPLEMENTATION-PLAN.md and follow the implementation order. Use Claude for read-only code review and isolated data for tests.
 
 ---
-# Current checkpoint — notes1 feedback / 0.2.0 preview
+# Historical checkpoint — notes1 feedback / 0.2.0 preview
 
 Updated 2026-10-27. The notes1 implementation is complete in the working tree, with final read-only review and local installer smoke verification completed. Read AGENTS.md for the Claude read-only requirement and GitHub history rules. The original feedback and architectural plan are retained in notes1.txt and FEEDBACK-IMPLEMENTATION-PLAN.md.
 
@@ -109,13 +114,13 @@ Updated 2026-10-27. The notes1 implementation is complete in the working tree, w
 - Actual test machine is Windows 10 22H2; Windows 11 target still needs clean-machine/live validation. Installer accepts both and remains unsigned. Close the app before installing/upgrading.
 - Test installations use HKCU uninstall key {17AA17B2-C8E2-4A45-A338-C24D60DAED75}_is1. Guard against an existing user install before testing; only uninstall the exact verified test path. Never test with normal LocalAppData/TimersApp data.
 - Local and remote histories remain distinct. The implementation commit is recorded above; a subsequent documentation-only commit records publication. Use the GitHub integration and leases for source synchronization; never force-push.
-# Current checkpoint — compact list 0.5.1 preview published
+# Historical checkpoint — compact list 0.5.1 preview published
 
 Updated 2026-10-28. User requested thinner list rows with all existing features. Implemented content-fitted list height by default, independent 4-DIP list spacing, manual height/gap controls and alert expansion. Existing saved manual heights can be restored by disabling list content fit. Claude read-only review `artifacts/claude-reviews/20261028-002726-115/review.md` found no confirmed clipping/data-loss defects; its confirmed misleading tooltip and unclear manual minimum were corrected. Final local build `artifacts/compact-list-build-final.log`: 61 passed, zero warnings/errors. Final installer `artifacts/installer/Tommys-Time-Tracking-Tables-Setup-0.5.1.exe` (49,408,162 bytes), SHA256 B1D9D3D76439403AF3A1993A61C3A534DA332B7DC64D2D564672E4A1E5EB49AB. Checksum-file digest D883BA06E9C9ABE02F7BBD021564025D9143C833FAB275A767773F7D8A8A1C19. Exact packaged app launched, responded and closed successfully with isolated data; database CleanShutdown=true (`artifacts/compact-list-portable-smoke-final/result.json`). No normal installation/data was touched. Local implementation commit 580cf25; remote release source 125363b2ea9938e19364ab2f03a2775f941795ad; preserve both histories, no force-push. GitHub Windows workflow 40651115998 / verify job 122691145467 succeeded. Published https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.5.1-preview as prerelease; tag points to the release source. Both uploaded asset digests match local files. Proof: `artifacts/installer/github-release-0.5.1.png`. Manual Windows 11, physical pointer/audio and mixed-DPI checks remain open. User also requested trusted signing and Microsoft Store distribution; begin a separate Store MSIX package and account preparation, with any certificate or account validation handled through the user's own identity.
 
 ---
 
-# Current checkpoint — Store and signing preparation after 0.5.1
+# Historical checkpoint — Store and signing preparation after 0.5.1
 
 Signing/installer follow-up, 2026-10-28: The published 0.5.1 setup still has Authenticode status `NotSigned`; its SHA256 matches the published release record (`B1D9D3D76439403AF3A1993A61C3A534DA332B7DC64D2D564672E4A1E5EB49AB`). No usable code-signing certificate was found in the current-user or local-machine personal certificate stores. The normal machine has an existing 0.4.0 installation with the production AppId, so it was not replaced or uninstalled. A temporary Inno build using a distinct test AppId installed into `artifacts/installer-smoke-0.5.1/program`; all 437 published payload files matched the installed copies by SHA256. The app version 0.5.1.0 launched and responded with isolated `TIMERSAPP_DATA_DIR`. Automated close met the expected save/discard prompt, so the test process was stopped; no clean-close result is claimed. The test build uninstalled successfully, its registry key and executable were removed, and its isolated data remained. The first production-ID install attempt in the restricted execution environment failed resolving the Local AppData shell folder before copying any files; a normal-access retry was aborted when the existing 0.4.0 installation was detected. The exact GitHub setup itself has not been installed on this machine. A user choice is pending for a trusted signing identity (Azure Artifact Signing or an existing trusted certificate); signing cannot be completed with a self-signed certificate if the goal is Windows publisher trust. Do not replace the published release asset with a differently hashed file without publishing and verifying a new signed release.
 
@@ -123,7 +128,7 @@ Updated 2026-10-28. The user requested a Microsoft Store release and trusted sig
 
 ---
 
-# Current checkpoint — one timer at a time / 0.5.2 preview
+# Historical checkpoint — one timer at a time / 0.5.2 preview
 
 Updated 2026-11-03. Added a per-workspace Settings checkbox, off by default, to allow only one running timer. Starting another stops the former at the same captured system time as the new start. Enabling the setting while several run retains the most recently started; sleep and crash recovery likewise resume only that timer. UI cleanup dismisses the stopped timer's alert and sound. Three engine/persistence tests and a shown WPF settings/toggle test were added. Final local build `artifacts/one-timer-build-final-2.log`: 64 passed, 0 failed. `publish.ps1` and `build-installer.ps1 -SkipPublish` succeeded; installer `artifacts/installer/Tommys-Time-Tracking-Tables-Setup-0.5.2.exe` is 49,413,090 bytes, SHA256 2B62B789E8EDEFAEF41FE8D2032A58F285ECD1F077E253F3F1A8D006D6465FAB. It is unsigned because signing is paused at the user's request. Claude read-only review attempted under `artifacts/claude-reviews/20261103-230218-148/` failed ECONNREFUSED; no Claude findings are claimed. Final manual diff review complete. Local implementation commit 87a0a2e, remote release source 53d1a32521bac93987013f93f5ac1db15cb33e55; both histories preserved without force-push. GitHub Windows workflow 41783842993 / verify job 126421303936 succeeded. Published https://github.com/goatonastik/tommys-time-tracking-tables/releases/tag/v0.5.2-preview as a prerelease. GitHub shows both installer and checksum assets; its installer digest exactly matches the local file. No normal user data/installation was touched. Manual Windows 11 and physical pointer checks remain open.
 

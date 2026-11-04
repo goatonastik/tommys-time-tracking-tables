@@ -1,0 +1,80 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  TimersApp.Core -> C:\TimersApp\src\TimersApp.Core\bin\Release\net10.0\TimersApp.Core.dll
+  TimersApp.Desktop -> C:\TimersApp\src\TimersApp.Desktop\bin\Release\net10.0-windows\TimersApp.dll
+  TimersApp.Tests -> C:\TimersApp\tests\TimersApp.Tests\bin\Release\net10.0-windows\TimersApp.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.95
+PASS Independent timers, stopped periods excluded
+PASS Double start cannot create duplicate running segments
+PASS Clock adjustment cannot inflate elapsed time
+PASS Reset preserves old segments but clears displayed total
+PASS Renaming keeps historical name snapshot
+PASS Rounding boundaries and halfway upward
+PASS Recovery excludes downtime and creates separate resume segment
+PASS Recovery can explicitly include interruption
+PASS Leap day and month boundary split without losing duration
+PASS Inclusive date range clips overlapping session
+PASS DST calendar day can contain 23 elapsed hours
+PASS Active snapshots retain blank stop time
+PASS One-timer setting defaults off and hands running time to the next timer
+PASS Enabling one-timer mode keeps the most recently started timer and persists
+PASS One-timer mode resumes only the latest timer after sleep or recovery
+PASS Concurrent sleep and crash recovery preserve the order of starts
+PASS A malformed maximum start order cannot block starting a timer
+PASS SQLite roundtrip, baseline isolation, and backup
+PASS Workbook contains one table and numeric exact durations
+PASS Elapsed units roll up hidden units and never introduce months
+PASS Style inheritance and pop-out overrides are independent
+PASS Styling, alert settings and window placement survive database save
+PASS Interval alerts fire once and consolidate missed intervals
+PASS Snooze restores alert only at deadline and disabling silences it
+PASS A stopped timer does not reactivate an expired snoozed alert
+PASS One-shot alerts do not rearm after dismiss
+PASS Primary save failure prevents backup; backup failure retains durable recovery copy
+PASS Locked old backup does not prevent a new complete snapshot
+PASS History durations retain milliseconds and hours beyond a day
+PASS Backup rotation retains twenty readable snapshots without locked target handles
+PASS Loading checkpoint cannot erase recovery gap
+PASS Sleep excludes sleeping time and preserves exact segments
+PASS Crash while sleep-paused does not count the sleep gap
+PASS Discard restores session baseline and remembers only chosen decision
+PASS Current workspace and launch preferences commit together
+PASS Schema migration and malformed segment rejection
+PASS Database recovery preserves damaged files and restores valid data
+PASS Fall-back DST day has 25 hours and selection keeps separate IDs
+PASS Excel preserves recorded offset and active blank stop without subtotals
+PASS Multi-year export preserves every tick and clips consistently
+PASS Last supported calendar month exports without date overflow
+PASS CSV replacement failure preserves the existing report and cleans temporary files
+PASS Empty export and fifty simultaneous timers remain valid
+PASS Workspace transition is atomic; deletion cannot be resurrected by stale saves
+PASS Legacy workspace migrates once with stable identity and a consistent preserved database
+PASS Database backup and disaster recovery preserve the entire workspace catalog
+PASS Backup policy defaults to 32, can be disabled independently of saving, and limits deletion scope
+PASS Custom duration layout rolls up units and validates token order
+PASS Disabled name suggestions retain old suggestions but collect no new names
+PASS Stopped workspace copies preserve totals and isolate duplicate data
+PASS Deliberate switches keep event classification and launch preferences
+PASS Snapshot workspace picker includes recoverable deleted workspaces
+PASS Stopped workspace retains spent alert intervals and skips empty temporary catalog entries
+PASS Migration preserves explicitly committed launch preferences newer than current snapshot
+PASS Discard of pre-recovery baseline retains crash classification when switching
+PASS Custom sound choice survives switching to system sound and back
+PASS Daily rounded hours aggregate segments once and distinguish same-name timers
+PASS Overnight export portions preserve exact allocation and short ID collisions
+PASS Export modes ignore hidden filters and reject empty custom selection
+PASS Export headers, wrapped rows, fixed description width and numeric daily hours
+Verified local MP3 fixture via managed decoder
+PASS WAV decoder and alert playback ownership need no media player
+PASS Background audio reads stop safely even when the device reports a failure
+PASS Startup sound defaults off and preference writes roll back together
+PASS One-shot startup playback stays independent and has no fallback
+PASS Compact list defaults and manual list dimensions persist independently of grid spacing
+PASS Pop-out geometry resolves independent off/shared/per-timer policies without erasing memory
+PASS Render workspace with three independent timer cards
+67 passed, 0 failed

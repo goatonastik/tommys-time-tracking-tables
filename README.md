@@ -72,3 +72,7 @@ The presentation layer uses event-driven views and isolated draft editors. Timer
 ## Automated Windows builds
 
 The GitHub Actions workflow builds and tests on Windows, then uploads the portable ZIP and rendered previews as workflow artifacts. It runs on pushes to main, pull requests and manual requests. The initial GitHub Windows build passed, including tests, packaging and artifact upload.
+
+## Continuing development
+
+Read [START-HERE.md](START-HERE.md) for an account-independent handoff, architecture, decisions, known issues and release instructions.
